@@ -1,5 +1,12 @@
 # GitGrounded
 
+This project is from the hackathon from the bitsom vrtex program day 1, and here i am solving the problem
+
+"How can AI applications be tested, evaluated, monitored, or improved more reliably?"
+"How can developers better manage prompts, models, agents, context, data, APIs, or AI workflows?"
+
+---
+
 [![Tests](https://github.com/amareshhebbar/gitgrounded/actions/workflows/tests.yml/badge.svg)](https://github.com/amareshhebbar/gitgrounded/actions/workflows/tests.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
