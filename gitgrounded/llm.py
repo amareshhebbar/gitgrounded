@@ -43,6 +43,8 @@ def _call_ollama(base_url, model, system, user, json_mode):
             {"role": "user", "content": user},
         ],
         "stream": False,
+        "think": False,
+        "keep_alive": "30m",
     }
     if json_mode:
         payload["format"] = "json"
