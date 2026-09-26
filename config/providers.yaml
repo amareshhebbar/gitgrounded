@@ -1,0 +1,27 @@
+ollama:
+  base_url: http://localhost:11434
+
+groq:
+  base_url: https://api.groq.com/openai/v1
+
+test_generator:
+  dev:
+    provider: ollama
+    model: llama3.1
+  demo:
+    provider: claude
+    model: claude-sonnet-4-6
+  test:
+    provider: mock
+    model: mock
+
+judge:
+  dev:
+    provider: ollama
+    model: llama3.1
+  demo:
+    provider: claude
+    model: claude-sonnet-4-6
+  test:
+    provider: mock
+    model: mock

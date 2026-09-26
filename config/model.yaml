@@ -1,0 +1,11 @@
+dev:
+  provider: ollama
+  model: qwen3:4b
+
+demo:
+  provider: groq
+  model: openai/gpt-oss-120b
+
+test:
+  provider: mock
+  model: mock

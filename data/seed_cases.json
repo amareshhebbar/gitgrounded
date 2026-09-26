@@ -1,0 +1,12 @@
+[
+  {"id": "seed-01", "input": "I was charged twice this month, can I get a refund?"},
+  {"id": "seed-02", "input": "I changed my mind about the purchase, it's been 5 days, can I get my money back?"},
+  {"id": "seed-03", "input": "The app crashes every time I try to open the dashboard."},
+  {"id": "seed-04", "input": "I'm locked out of my account after too many failed logins."},
+  {"id": "seed-05", "input": "My package was supposed to arrive 10 days ago and still hasn't shown up."},
+  {"id": "seed-06", "input": "I want to cancel my subscription, will I get a refund for this month?"},
+  {"id": "seed-07", "input": "I'm on the Enterprise plan, how fast will support get back to me?"},
+  {"id": "seed-08", "input": "Can you export all my account data? How long will it take?"},
+  {"id": "seed-09", "input": "I bought this through a third-party marketplace, can support refund me directly?"},
+  {"id": "seed-10", "input": "It's been 20 days since I changed my mind about the purchase, can I still get a refund?"}
+]
