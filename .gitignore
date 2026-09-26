@@ -7,3 +7,5 @@ __pycache__/
 .pytest_cache/.agents/
 .claude/
 .agents/
+.pytest_cache/
+.versions.versions/

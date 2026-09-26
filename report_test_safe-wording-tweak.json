@@ -1,0 +1,123 @@
+{
+  "old_ref": "baseline",
+  "new_ref": "test/safe-wording-tweak",
+  "diff": "diff --git a/prompts/triage.txt b/prompts/triage.txt\nindex 172cf9a..e12670c 100644\n--- a/prompts/triage.txt\n+++ b/prompts/triage.txt\n@@ -1,4 +1,4 @@\n-You are a customer support triage assistant for a mid-size SaaS company.\n+You are a customer support triage assistant for a mid-sized SaaS company.\n \n You are given the company policy document below. Use only this policy as the source of truth. Always cite the exact policy line you relied on.\n \n",
+  "summary": {
+    "verdict": "PASS",
+    "pass_count": 5,
+    "warn_count": 0,
+    "fail_count": 0,
+    "total_cases": 5,
+    "avg_groundedness": 8.0,
+    "avg_format_correctness": 8.0,
+    "avg_rule_following": 8.0,
+    "avg_meaning_drift": 1.0
+  },
+  "cases": [
+    {
+      "status": "PASS",
+      "input": "I was charged twice this month, can I get a refund?",
+      "code_checks": {
+        "valid_json": true,
+        "missing_fields": [],
+        "invalid_category": false,
+        "invalid_priority": false
+      },
+      "scores": {
+        "groundedness": 8,
+        "format_correctness": 8,
+        "rule_following": 8,
+        "meaning_drift": 1,
+        "reason": "mock judge response, deterministic for testing"
+      },
+      "old_raw": "{\"category\": \"billing\", \"priority\": \"medium\", \"answer\": \"Mock answer for testing.\", \"policy_line\": \"1. Refunds are issued in full for duplicate charges within 30 days of the original transaction.\"}",
+      "new_raw": "{\"category\": \"billing\", \"priority\": \"medium\", \"answer\": \"Mock answer for testing.\", \"policy_line\": \"1. Refunds are issued in full for duplicate charges within 30 days of the original transaction.\"}"
+    },
+    {
+      "status": "PASS",
+      "input": "I changed my mind about the purchase, it's been 5 days, can I get my money back?",
+      "code_checks": {
+        "valid_json": true,
+        "missing_fields": [],
+        "invalid_category": false,
+        "invalid_priority": false
+      },
+      "scores": {
+        "groundedness": 8,
+        "format_correctness": 8,
+        "rule_following": 8,
+        "meaning_drift": 1,
+        "reason": "mock judge response, deterministic for testing"
+      },
+      "old_raw": "{\"category\": \"billing\", \"priority\": \"medium\", \"answer\": \"Mock answer for testing.\", \"policy_line\": \"1. Refunds are issued in full for duplicate charges within 30 days of the original transaction.\"}",
+      "new_raw": "{\"category\": \"billing\", \"priority\": \"medium\", \"answer\": \"Mock answer for testing.\", \"policy_line\": \"1. Refunds are issued in full for duplicate charges within 30 days of the original transaction.\"}"
+    },
+    {
+      "status": "PASS",
+      "input": "The app crashes every time I try to open the dashboard.",
+      "code_checks": {
+        "valid_json": true,
+        "missing_fields": [],
+        "invalid_category": false,
+        "invalid_priority": false
+      },
+      "scores": {
+        "groundedness": 8,
+        "format_correctness": 8,
+        "rule_following": 8,
+        "meaning_drift": 1,
+        "reason": "mock judge response, deterministic for testing"
+      },
+      "old_raw": "{\"category\": \"billing\", \"priority\": \"medium\", \"answer\": \"Mock answer for testing.\", \"policy_line\": \"1. Refunds are issued in full for duplicate charges within 30 days of the original transaction.\"}",
+      "new_raw": "{\"category\": \"billing\", \"priority\": \"medium\", \"answer\": \"Mock answer for testing.\", \"policy_line\": \"1. Refunds are issued in full for duplicate charges within 30 days of the original transaction.\"}"
+    },
+    {
+      "status": "PASS",
+      "input": "Mock generated case one, a duplicate charge scenario.",
+      "code_checks": {
+        "valid_json": true,
+        "missing_fields": [],
+        "invalid_category": false,
+        "invalid_priority": false
+      },
+      "scores": {
+        "groundedness": 8,
+        "format_correctness": 8,
+        "rule_following": 8,
+        "meaning_drift": 1,
+        "reason": "mock judge response, deterministic for testing"
+      },
+      "old_raw": "{\"category\": \"billing\", \"priority\": \"medium\", \"answer\": \"Mock answer for testing.\", \"policy_line\": \"1. Refunds are issued in full for duplicate charges within 30 days of the original transaction.\"}",
+      "new_raw": "{\"category\": \"billing\", \"priority\": \"medium\", \"answer\": \"Mock answer for testing.\", \"policy_line\": \"1. Refunds are issued in full for duplicate charges within 30 days of the original transaction.\"}"
+    },
+    {
+      "status": "PASS",
+      "input": "Mock generated case two, a refund window edge case.",
+      "code_checks": {
+        "valid_json": true,
+        "missing_fields": [],
+        "invalid_category": false,
+        "invalid_priority": false
+      },
+      "scores": {
+        "groundedness": 8,
+        "format_correctness": 8,
+        "rule_following": 8,
+        "meaning_drift": 1,
+        "reason": "mock judge response, deterministic for testing"
+      },
+      "old_raw": "{\"category\": \"billing\", \"priority\": \"medium\", \"answer\": \"Mock answer for testing.\", \"policy_line\": \"1. Refunds are issued in full for duplicate charges within 30 days of the original transaction.\"}",
+      "new_raw": "{\"category\": \"billing\", \"priority\": \"medium\", \"answer\": \"Mock answer for testing.\", \"policy_line\": \"1. Refunds are issued in full for duplicate charges within 30 days of the original transaction.\"}"
+    }
+  ],
+  "generated_cases": [
+    {
+      "id": "mock-1",
+      "input": "Mock generated case one, a duplicate charge scenario."
+    },
+    {
+      "id": "mock-2",
+      "input": "Mock generated case two, a refund window edge case."
+    }
+  ]
+}

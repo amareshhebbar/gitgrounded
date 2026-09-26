@@ -1,0 +1,192 @@
+{
+  "old_ref": "baseline",
+  "new_ref": "test/drop-citation-rule",
+  "diff": "diff --git a/prompts/triage.txt b/prompts/triage.txt\nindex 172cf9a..8c3c711 100644\n--- a/prompts/triage.txt\n+++ b/prompts/triage.txt\n@@ -1,6 +1,6 @@\n You are a customer support triage assistant for a mid-size SaaS company.\n \n-You are given the company policy document below. Use only this policy as the source of truth. Always cite the exact policy line you relied on.\n+You are given the company policy document below. Use only this policy as the source of truth. Keep your answer as short as possible.\n \n Policy:\n {{policy}}\n",
+  "summary": {
+    "verdict": "PASS",
+    "pass_count": 8,
+    "warn_count": 0,
+    "fail_count": 0,
+    "total_cases": 8,
+    "avg_groundedness": 8.0,
+    "avg_format_correctness": 8.0,
+    "avg_rule_following": 8.0,
+    "avg_meaning_drift": 1.0
+  },
+  "cases": [
+    {
+      "status": "PASS",
+      "input": "I was charged twice this month, can I get a refund?",
+      "code_checks": {
+        "valid_json": true,
+        "missing_fields": [],
+        "invalid_category": false,
+        "invalid_priority": false
+      },
+      "scores": {
+        "groundedness": 8,
+        "format_correctness": 8,
+        "rule_following": 8,
+        "meaning_drift": 1,
+        "reason": "mock judge response, deterministic for testing"
+      },
+      "old_raw": "{\"category\": \"billing\", \"priority\": \"medium\", \"answer\": \"Mock answer for testing.\", \"policy_line\": \"1. Refunds are issued in full for duplicate charges within 30 days of the original transaction.\"}",
+      "new_raw": "{\"category\": \"billing\", \"priority\": \"medium\", \"answer\": \"Mock answer for testing.\", \"policy_line\": \"1. Refunds are issued in full for duplicate charges within 30 days of the original transaction.\"}"
+    },
+    {
+      "status": "PASS",
+      "input": "I changed my mind about the purchase, it's been 5 days, can I get my money back?",
+      "code_checks": {
+        "valid_json": true,
+        "missing_fields": [],
+        "invalid_category": false,
+        "invalid_priority": false
+      },
+      "scores": {
+        "groundedness": 8,
+        "format_correctness": 8,
+        "rule_following": 8,
+        "meaning_drift": 1,
+        "reason": "mock judge response, deterministic for testing"
+      },
+      "old_raw": "{\"category\": \"billing\", \"priority\": \"medium\", \"answer\": \"Mock answer for testing.\", \"policy_line\": \"1. Refunds are issued in full for duplicate charges within 30 days of the original transaction.\"}",
+      "new_raw": "{\"category\": \"billing\", \"priority\": \"medium\", \"answer\": \"Mock answer for testing.\", \"policy_line\": \"1. Refunds are issued in full for duplicate charges within 30 days of the original transaction.\"}"
+    },
+    {
+      "status": "PASS",
+      "input": "The app crashes every time I try to open the dashboard.",
+      "code_checks": {
+        "valid_json": true,
+        "missing_fields": [],
+        "invalid_category": false,
+        "invalid_priority": false
+      },
+      "scores": {
+        "groundedness": 8,
+        "format_correctness": 8,
+        "rule_following": 8,
+        "meaning_drift": 1,
+        "reason": "mock judge response, deterministic for testing"
+      },
+      "old_raw": "{\"category\": \"billing\", \"priority\": \"medium\", \"answer\": \"Mock answer for testing.\", \"policy_line\": \"1. Refunds are issued in full for duplicate charges within 30 days of the original transaction.\"}",
+      "new_raw": "{\"category\": \"billing\", \"priority\": \"medium\", \"answer\": \"Mock answer for testing.\", \"policy_line\": \"1. Refunds are issued in full for duplicate charges within 30 days of the original transaction.\"}"
+    },
+    {
+      "status": "PASS",
+      "input": "Hi, I accidentally deleted my account data. According to your refund policy, am I entitled to a full refund? Can you point me to the specific rule that covers this?",
+      "code_checks": {
+        "valid_json": true,
+        "missing_fields": [],
+        "invalid_category": false,
+        "invalid_priority": false
+      },
+      "scores": {
+        "groundedness": 8,
+        "format_correctness": 8,
+        "rule_following": 8,
+        "meaning_drift": 1,
+        "reason": "mock judge response, deterministic for testing"
+      },
+      "old_raw": "{\"category\": \"billing\", \"priority\": \"medium\", \"answer\": \"Mock answer for testing.\", \"policy_line\": \"1. Refunds are issued in full for duplicate charges within 30 days of the original transaction.\"}",
+      "new_raw": "{\"category\": \"billing\", \"priority\": \"medium\", \"answer\": \"Mock answer for testing.\", \"policy_line\": \"1. Refunds are issued in full for duplicate charges within 30 days of the original transaction.\"}"
+    },
+    {
+      "status": "PASS",
+      "input": "I was charged twice for my subscription this month. What does your policy say exactly about duplicate charges and how they are resolved? Please quote the relevant section.",
+      "code_checks": {
+        "valid_json": true,
+        "missing_fields": [],
+        "invalid_category": false,
+        "invalid_priority": false
+      },
+      "scores": {
+        "groundedness": 8,
+        "format_correctness": 8,
+        "rule_following": 8,
+        "meaning_drift": 1,
+        "reason": "mock judge response, deterministic for testing"
+      },
+      "old_raw": "{\"category\": \"billing\", \"priority\": \"medium\", \"answer\": \"Mock answer for testing.\", \"policy_line\": \"1. Refunds are issued in full for duplicate charges within 30 days of the original transaction.\"}",
+      "new_raw": "{\"category\": \"billing\", \"priority\": \"medium\", \"answer\": \"Mock answer for testing.\", \"policy_line\": \"1. Refunds are issued in full for duplicate charges within 30 days of the original transaction.\"}"
+    },
+    {
+      "status": "PASS",
+      "input": "Your policy mentions a 30-day free trial, right? I signed up 28 days ago and want to cancel without being billed. Which policy line guarantees this?",
+      "code_checks": {
+        "valid_json": true,
+        "missing_fields": [],
+        "invalid_category": false,
+        "invalid_priority": false
+      },
+      "scores": {
+        "groundedness": 8,
+        "format_correctness": 8,
+        "rule_following": 8,
+        "meaning_drift": 1,
+        "reason": "mock judge response, deterministic for testing"
+      },
+      "old_raw": "{\"category\": \"billing\", \"priority\": \"medium\", \"answer\": \"Mock answer for testing.\", \"policy_line\": \"1. Refunds are issued in full for duplicate charges within 30 days of the original transaction.\"}",
+      "new_raw": "{\"category\": \"billing\", \"priority\": \"medium\", \"answer\": \"Mock answer for testing.\", \"policy_line\": \"1. Refunds are issued in full for duplicate charges within 30 days of the original transaction.\"}"
+    },
+    {
+      "status": "PASS",
+      "input": "I need to know the exact wording in your policy about data retention after account cancellation. My legal team is asking for the precise clause.",
+      "code_checks": {
+        "valid_json": true,
+        "missing_fields": [],
+        "invalid_category": false,
+        "invalid_priority": false
+      },
+      "scores": {
+        "groundedness": 8,
+        "format_correctness": 8,
+        "rule_following": 8,
+        "meaning_drift": 1,
+        "reason": "mock judge response, deterministic for testing"
+      },
+      "old_raw": "{\"category\": \"billing\", \"priority\": \"medium\", \"answer\": \"Mock answer for testing.\", \"policy_line\": \"1. Refunds are issued in full for duplicate charges within 30 days of the original transaction.\"}",
+      "new_raw": "{\"category\": \"billing\", \"priority\": \"medium\", \"answer\": \"Mock answer for testing.\", \"policy_line\": \"1. Refunds are issued in full for duplicate charges within 30 days of the original transaction.\"}"
+    },
+    {
+      "status": "PASS",
+      "input": "Can you cite the specific policy rule that determines whether enterprise customers get priority support? I want to see the exact text before escalating my ticket.",
+      "code_checks": {
+        "valid_json": true,
+        "missing_fields": [],
+        "invalid_category": false,
+        "invalid_priority": false
+      },
+      "scores": {
+        "groundedness": 8,
+        "format_correctness": 8,
+        "rule_following": 8,
+        "meaning_drift": 1,
+        "reason": "mock judge response, deterministic for testing"
+      },
+      "old_raw": "{\"category\": \"billing\", \"priority\": \"medium\", \"answer\": \"Mock answer for testing.\", \"policy_line\": \"1. Refunds are issued in full for duplicate charges within 30 days of the original transaction.\"}",
+      "new_raw": "{\"category\": \"billing\", \"priority\": \"medium\", \"answer\": \"Mock answer for testing.\", \"policy_line\": \"1. Refunds are issued in full for duplicate charges within 30 days of the original transaction.\"}"
+    }
+  ],
+  "generated_cases": [
+    {
+      "id": "tc1",
+      "input": "Hi, I accidentally deleted my account data. According to your refund policy, am I entitled to a full refund? Can you point me to the specific rule that covers this?"
+    },
+    {
+      "id": "tc2",
+      "input": "I was charged twice for my subscription this month. What does your policy say exactly about duplicate charges and how they are resolved? Please quote the relevant section."
+    },
+    {
+      "id": "tc3",
+      "input": "Your policy mentions a 30-day free trial, right? I signed up 28 days ago and want to cancel without being billed. Which policy line guarantees this?"
+    },
+    {
+      "id": "tc4",
+      "input": "I need to know the exact wording in your policy about data retention after account cancellation. My legal team is asking for the precise clause."
+    },
+    {
+      "id": "tc5",
+      "input": "Can you cite the specific policy rule that determines whether enterprise customers get priority support? I want to see the exact text before escalating my ticket."
+    }
+  ]
+}
