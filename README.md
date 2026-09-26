@@ -3,6 +3,7 @@
 This project is from the BITSoM Vertex Builders Pitch Fest hackathon, Day 1, Software Automation AI Track. It solves:
 
 > "How can AI applications be tested, evaluated, monitored, or improved more reliably?"
+>
 > "How can developers better manage prompts, models, agents, context, data, APIs, or AI workflows?"
 
 [![Tests](https://github.com/amareshhebbar/gitgrounded/actions/workflows/tests.yml/badge.svg)](https://github.com/amareshhebbar/gitgrounded/actions/workflows/tests.yml)
