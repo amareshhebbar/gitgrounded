@@ -1,6 +1,6 @@
 dev:
   provider: ollama
-  model: qwen3:4b
+  model: qwen2.5:3b
 
 demo:
   provider: groq
