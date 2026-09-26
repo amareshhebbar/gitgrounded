@@ -4,4 +4,5 @@ report.json
 __pycache__/
 *.pyc
 .venv/
-.pytest_cache/
+.pytest_cache/.agents/
+.claude/
