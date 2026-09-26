@@ -21,6 +21,7 @@ def parse_args():
     parser.add_argument("--new", required=True, help="new git ref, e.g. my-change")
     parser.add_argument("--seed-cases", default=os.path.join(BASE_DIR, "data", "seed_cases.json"))
     parser.add_argument("--report", default=os.path.join(BASE_DIR, "report.json"))
+    parser.add_argument("--quick", action="store_true", help="fewer seed and generated cases, for fast local iteration")
     return parser.parse_args()
 
 
@@ -32,9 +33,13 @@ def main():
     with open(args.seed_cases) as f:
         seed_cases = json.load(f)
 
+    if args.quick:
+        seed_cases = seed_cases[:3]
+
     run_pair = runner.run_both(app_run, seed_cases, args.old, args.new, BASE_DIR, mode, providers_config)
 
-    generated = generate_cases(run_pair["diff"], mode, providers_config)
+    count_hint = "3 to 5" if args.quick else "15 to 20"
+    generated = generate_cases(run_pair["diff"], mode, providers_config, count_hint=count_hint)
 
     old_version = runner.load_version(args.old, BASE_DIR, mode)
     new_version = runner.load_version(args.new, BASE_DIR, mode)

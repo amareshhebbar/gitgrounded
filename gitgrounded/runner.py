@@ -1,5 +1,8 @@
+import json
 import subprocess
 import yaml
+
+from gitgrounded import cache
 
 
 def _read_git_file(ref, relative_path, repo_dir):
@@ -22,12 +25,22 @@ def load_version(ref, base_dir, mode):
 
 
 def run_case(app_run_fn, message, version, providers_config):
-    result = app_run_fn(
-        message=message,
-        prompt_text=version["prompt_text"],
-        model_config=version["model_config"],
-        providers_config=providers_config,
+    cache_key = json.dumps(
+        {"prompt": version["prompt_text"], "model": version["model_config"], "msg": message},
+        sort_keys=True,
     )
+    cached = cache.get("triage_answer", cache_key)
+    if cached is not None:
+        result = dict(cached)
+    else:
+        result = app_run_fn(
+            message=message,
+            prompt_text=version["prompt_text"],
+            model_config=version["model_config"],
+            providers_config=providers_config,
+        )
+        cache.set("triage_answer", result, cache_key)
+
     result["input"] = message
     result["ref"] = version["ref"]
     return result
