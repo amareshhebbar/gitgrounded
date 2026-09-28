@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "GitGrounded"
+abstract: >-
+  GitGrounded tests an AI app before and after a prompt or model change and
+  tells you whether the change made it worse. It supports two modes: git
+  mode (diffs two git branches of a local app, generates targeted
+  regression tests from the diff, and judges old vs new answers) and
+  endpoint mode (tests any live HTTP API against its own stored version
+  history).
+authors:
+  - family-names: Hebbar
+    given-names: Amaresh
+repository-code: "https://github.com/amareshhebbar/gitgrounded"
+license: MIT
+version: 0.1.0
+date-released: "2026-09-28"
+keywords:
+  - llm-testing
+  - prompt-engineering
+  - regression-testing
