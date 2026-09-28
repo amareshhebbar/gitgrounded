@@ -1,0 +1,22 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "gitgrounded"
+dynamic = ["version"]
+description = "Catches AI regressions before your users do"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = ["PyYAML", "requests", "openai", "anthropic", "python-dotenv"]
+
+[project.optional-dependencies]
+dashboard = ["streamlit"]
+server = ["Flask"]
+
+[project.scripts]
+gitgrounded = "gitgrounded.cli:main"
+
+[tool.hatch.version]
+source = "vcs"
