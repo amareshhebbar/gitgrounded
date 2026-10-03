@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GitGrounded {{ res.verdict }} {{ res.suite }}</title>
+<style>{{ css }}</style>
+</head>
+<body>
+<main>
+<div class="panel hero">
+  <span class="badge big {{ res.verdict }}">{{ res.verdict }}</span>
+  <div>
+    <h1>{{ res.project }} / {{ res.suite }}</h1>
+    <div class="sub">
+      {% if res.base %}{{ res.base.name }}{% if res.base.sha %} <span class="mono">{{ res.base.sha[:10] }}</span>{% endif %} &rarr; {% endif %}{{ res.head.name }}{% if res.head.sha %} <span class="mono">{{ res.head.sha[:10] }}</span>{% endif %}
+      &middot; {{ res.mode }} &middot; {{ res.trials }} trial{{ '' if res.trials == 1 else 's' }} &middot; {{ res.created_at }}
+    </div>
+  </div>
+</div>
+
+<h2>Outcome</h2>
+<div class="grid">
+  {% for key, label in [("total_cases","cases"),("pass_cases","pass"),("fail_cases","fail"),("warn_cases","warn"),("improved_cases","improved"),("broken_cases","broken in both"),("unstable_cases","unstable"),("new_assertion_failures","new assertion failures")] %}
+  <div class="card"><div class="k">{{ label }}</div><div class="v">{{ res.counts.get(key, 0) }}</div></div>
+  {% endfor %}
+</div>
+
+<h2>Metrics</h2>
+<div class="grid">
+  {% for name, m in metrics %}
+  <div class="card">
+    <div class="k">{{ name }}</div>
+    <div class="v">{{ m.head.mean | fmt }}{% if m.delta and m.delta.mean is not none %} <span class="{{ 'pos' if m.delta.mean >= 0 else 'neg' }}" style="font-size:14px">{{ '%+.2f' % m.delta.mean }}</span>{% endif %}</div>
+    <div class="ci">head 95% CI [{{ m.head.ci_lower | fmt }}, {{ m.head.ci_upper | fmt }}]</div>
+    {% if m.base %}<div class="ci">base {{ m.base.mean | fmt }} &middot; delta CI [{{ m.delta.ci_lower | fmt }}, {{ m.delta.ci_upper | fmt }}] &middot; p adj {{ m.delta.p_adjusted | fmt(3) }}</div>{% endif %}
+  </div>
+  {% endfor %}
+  {% if apr %}
+  <div class="card">
+    <div class="k">assertion pass rate</div>
+    <div class="v">{{ apr.head.rate | pct }}</div>
+    <div class="ci">Wilson 95% [{{ apr.head.ci_lower | pct }}, {{ apr.head.ci_upper | pct }}]{% if apr.base %} &middot; base {{ apr.base.rate | pct }}{% endif %}</div>
+  </div>
+  {% endif %}
+  {% if res.pairwise.n %}
+  <div class="card">
+    <div class="k">pairwise preference</div>
+    <div class="v">{{ res.pairwise.head_wins }} : {{ res.pairwise.base_wins }} <span class="sub" style="font-size:14px">({{ res.pairwise.ties }} ties)</span></div>
+    <div class="ci">head : base &middot; position consistency {{ res.pairwise.position_consistency | pct }}</div>
+  </div>
+  {% endif %}
+</div>
+
+<h2>Gate decision</h2>
+<div class="panel">
+  <table>
+    <tr><th>level</th><th>rule</th><th>triggered</th></tr>
+    {% for g in res.gate_trace %}
+    <tr><td>{{ g.level }}</td><td><code>{{ g.expr }}</code></td><td class="{{ 'bad' if g.triggered else 'ok' }}">{{ 'yes' if g.triggered else 'no' }}</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+{% if coverage %}
+<h2>Coverage</h2>
+<div class="grid">
+  <div class="card"><div class="k">behaviors covered</div><div class="v">{{ coverage.summary.behaviors_covered }} / {{ coverage.summary.behaviors }}</div></div>
+  <div class="card"><div class="k">pairwise condition coverage</div><div class="v">{{ coverage.summary.tuple_coverage | pct }}</div></div>
+  <div class="card"><div class="k">mutation score</div><div class="v">{{ coverage.summary.mutation_score | pct }}</div><div class="ci">{{ coverage.summary.mutants }} mutants</div></div>
+  <div class="card"><div class="k">human reviewed</div><div class="v">{{ coverage.summary.reviewed_fraction | pct }}</div></div>
+</div>
+{% endif %}
+
+{% if res.behaviors %}
+<h2>Behaviors in this run</h2>
+<div class="panel">
+<table>
+  <tr><th>behavior</th><th>cases</th><th>passing</th><th>statuses</th></tr>
+  {% for bid, b in res.behaviors.items() %}
+  <tr><td class="mono">{{ bid }}</td><td>{{ b.cases }}</td><td><div class="bar"><span style="width:{{ (100 * b.head_pass / b.cases) | round(0) }}%"></span></div></td><td>{% for s, n in b.statuses.items() %}<span class="badge {{ s }}" style="font-size:11px;padding:1px 8px">{{ s }} {{ n }}</span> {% endfor %}</td></tr>
+  {% endfor %}
+</table>
+</div>
+{% endif %}
+
+<h2>Cases</h2>
+<div class="filters" id="filters">
+  <button data-s="ALL" class="on">all</button>
+  {% for s in ["FAIL","BROKEN","WARN","UNSTABLE","IMPROVED","PASS"] %}<button data-s="{{ s }}">{{ s.lower() }}</button>{% endfor %}
+  <input id="q" type="search" placeholder="filter by text, id or behavior">
+</div>
+<div class="panel" style="padding:0 10px">
+  <details style="pointer-events:none"><summary><b>status</b><b>case</b><b class="num">score</b><b class="num">base</b><b class="num">delta</b></summary></details>
+  {% for row in rows %}{% set r = row.r %}
+  <details class="case" data-s="{{ r.status }}" data-q="{{ (r.case.id ~ ' ' ~ (r.case.input if r.case.input is string else '') ~ ' ' ~ (r.case.behaviors | join(' '))) | lower }}">
+    <summary>
+      <span><span class="badge {{ r.status }}">{{ r.status }}</span></span>
+      <span><span class="mono">{{ r.case.id }}</span> {{ (r.case.input if r.case.input is string else r.case.input[-1].content)[:140] }}</span>
+      <span class="num">{{ row.score_head | fmt }}</span>
+      <span class="num">{{ row.score_base | fmt }}</span>
+      <span class="num {{ 'neg' if (r.delta.get('score', 0) < 0) else 'pos' }}">{{ ('%+.2f' % r.delta.score) if r.delta.get('score') is not none else '' }}</span>
+    </summary>
+    <div class="case-body">
+      {% if r.reasons %}<p><b>Why:</b> {{ r.reasons | join('; ') }}</p>{% endif %}
+      <div class="kv">
+        <div>input</div><div><pre>{{ r.case.input | pretty }}</pre></div>
+        {% if r.case.expectations %}<div>expectations</div><div>{% for e in r.case.expectations %}<div><code>{{ e.kind }}</code> {{ e.text }}</div>{% endfor %}</div>{% endif %}
+        {% if r.case.behaviors %}<div>behaviors</div><div class="mono">{{ r.case.behaviors | join(', ') }}</div>{% endif %}
+        {% if r.case.cell %}<div>conditions</div><div>{% for k, v in r.case.cell.items() %}<code>{{ k }}={{ v }}</code> {% endfor %}</div>{% endif %}
+        <div>origin</div><div>{{ r.case.origin }}{% if r.case.reviewed %} &middot; human reviewed{% endif %}</div>
+      </div>
+      {% if row.diff is not none %}
+      <h3 style="font-size:13px;margin:14px 0 4px">Output change (base &rarr; head)</h3>
+      <pre>{{ row.diff }}</pre>
+      <div class="two">
+        <div><b>base</b><pre>{{ row.base_out }}</pre></div>
+        <div><b>head</b><pre>{{ row.head_out }}</pre></div>
+      </div>
+      {% else %}
+      <h3 style="font-size:13px;margin:14px 0 4px">Output</h3>
+      <pre>{{ row.head_out }}</pre>
+      {% endif %}
+      <div class="two">
+        {% for side, t in [("base", row.base_t), ("head", row.head_t)] %}{% if t %}
+        <div>
+          <b>{{ side }} checks</b>
+          <table>
+            {% for a in t.assertions %}<tr><td class="{{ 'ok' if a.passed else 'bad' }}">{{ 'pass' if a.passed else 'fail' }}</td><td><code>{{ a.label }}</code></td><td>{{ a.message }}</td></tr>{% endfor %}
+            {% for j in t.judges %}<tr><td>{{ j.score | fmt }}</td><td><code>{{ j.judge }}</code></td><td>{% for k, v in j.scores.items() %}{{ k }} {{ v | fmt(1) }} {% endfor %}<div class="sub">{{ j.reason }}</div></td></tr>{% endfor %}
+          </table>
+          <div class="sub">latency {{ t.transcript.latency_ms | fmt(0) }} ms &middot; tokens {{ t.transcript.input_tokens }}/{{ t.transcript.output_tokens }}{% if t.transcript.cached %} &middot; cached{% endif %}</div>
+        </div>
+        {% endif %}{% endfor %}
+      </div>
+      {% if r.pairwise %}<p class="sub">pairwise: {% for p in r.pairwise %}{{ p.winner }}{% if not p.consistent %} (order dependent){% endif %} &middot; {{ p.reason }} {% endfor %}</p>{% endif %}
+    </div>
+  </details>
+  {% endfor %}
+</div>
+
+{% if diff_lines %}
+<h2>Change under test</h2>
+<div class="panel diff">{% for kind, line in diff_lines %}<div class="{{ kind }}">{{ line }}</div>{% endfor %}</div>
+{% endif %}
+
+<h2>Provenance</h2>
+<div class="panel kv">
+  <div>run id</div><div class="mono">{{ res.run_id }}</div>
+  <div>tool version</div><div class="mono">gitgrounded {{ res.tool_version }}</div>
+  <div>target</div><div class="mono">{{ res.target }}</div>
+  <div>config hash</div><div class="mono">{{ res.config_hash }}</div>
+  <div>dataset hash</div><div class="mono">{{ res.dataset_hash }}</div>
+  {% if res.suite_version %}<div>suite version</div><div class="mono">{{ res.suite_version }}</div>{% endif %}
+  <div>judge</div><div class="mono">{{ res.providers.judge.provider }} / {{ res.providers.judge.model }}{% if res.providers.offline %} (offline mock mode){% endif %}</div>
+  <div>run cost</div><div class="mono">${{ res.cost.run_usd | fmt(4) }}</div>
+  {% if provenance.merkle_root %}
+  <div>merkle root</div><div class="mono">{{ provenance.merkle_root }}</div>
+  <div>summary sha256</div><div class="mono">{{ provenance.summary_sha256 }}</div>
+  <div>bundle format</div><div class="mono">{{ provenance.bundle_format }}</div>
+  <div>verify</div><div class="mono">gitgrounded verify &lt;bundle&gt;.ggb</div>
+  {% endif %}
+</div>
+
+<footer>Generated by GitGrounded {{ res.tool_version }}. This page is part of an evidence bundle only when shipped inside a signed .ggb file; verify the bundle, not the page.</footer>
+</main>
+<script>
+(function(){
+  var state="ALL";
+  var cases=[].slice.call(document.querySelectorAll("details.case"));
+  var q=document.getElementById("q");
+  function apply(){
+    var text=(q.value||"").toLowerCase();
+    cases.forEach(function(d){
+      var ok=(state==="ALL"||d.getAttribute("data-s")===state)&&(!text||d.getAttribute("data-q").indexOf(text)>=0);
+      d.style.display=ok?"":"none";
+    });
+  }
+  document.querySelectorAll("#filters button").forEach(function(b){
+    b.addEventListener("click",function(){
+      document.querySelectorAll("#filters button").forEach(function(x){x.classList.remove("on")});
+      b.classList.add("on");state=b.getAttribute("data-s");apply();
+    });
+  });
+  q.addEventListener("input",apply);
+})();
+</script>
+</body>
+</html>
