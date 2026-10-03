@@ -1,0 +1,78 @@
+version: 1
+
+project:
+  name: triage-example
+
+providers:
+  judge:
+    provider: anthropic
+    model: claude-sonnet-4-6
+  generator:
+    provider: anthropic
+    model: claude-sonnet-4-6
+  validator:
+    provider: groq
+    model: openai/gpt-oss-120b
+
+targets:
+  triage:
+    type: python
+    entry: app.triage:run
+    watch:
+      - prompts/triage.txt
+      - config/model.yaml
+      - data/policy.md
+
+suites:
+  core:
+    target: triage
+    cases: data/cases.jsonl
+    context:
+      policy: data/policy.md
+    assertions:
+      - type: json_valid
+      - type: json_schema
+        schema: schemas/triage.schema.json
+    judges:
+      - type: rubric
+        rubric: grounded_answer
+      - type: pairwise
+    trials: 1
+    generate:
+      count: 6
+      domain: customer support triage for a SaaS company, answers must be grounded in a numbered refund and support policy
+
+  auto:
+    target: triage
+    context:
+      policy: data/policy.md
+    assertions:
+      - type: json_valid
+      - type: json_schema
+        schema: schemas/triage.schema.json
+    generate:
+      enabled: false
+    coverage:
+      sources:
+        system_prompt: prompts/triage.txt
+        documents:
+          - data/policy.md
+      dimensions:
+        style: [terse, angry, typo_heavy, code_mixed_hinglish]
+        difficulty: [easy, edge, adversarial]
+      budget_cases: 60
+      min_cases_per_behavior: 2
+      mutation:
+        target_file: prompts/triage.txt
+        model_file: config/model.yaml
+        model_key: model
+        downgrade_to: openai/gpt-oss-20b
+        max_mutants: 12
+
+gates:
+  fail_if:
+    - "new_assertion_failures > 0"
+    - "fail_cases > 0"
+  warn_if:
+    - "warn_cases > 0"
+    - "delta.score.mean < -0.5"
