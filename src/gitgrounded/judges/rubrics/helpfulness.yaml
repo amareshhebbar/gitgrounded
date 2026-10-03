@@ -1,0 +1,16 @@
+name: helpfulness
+description: General quality of the answer for the user.
+show: [reference, expectations]
+dimensions:
+  - name: helpfulness
+    description: Resolves the request clearly, correctly and concisely.
+    anchors:
+      0: Unhelpful or wrong.
+      5: Partially helpful.
+      10: Fully resolves the request.
+  - name: tone
+    description: Tone is appropriate for the user and situation.
+    anchors:
+      0: Rude, dismissive or inappropriate.
+      5: Acceptable but awkward.
+      10: Appropriate and professional.

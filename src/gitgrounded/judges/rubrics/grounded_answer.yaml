@@ -1,0 +1,22 @@
+name: grounded_answer
+description: Is the answer correct, grounded in the provided context, and does it satisfy the case expectations?
+show: [context, reference, expectations]
+dimensions:
+  - name: groundedness
+    description: Every factual claim is supported by the provided context or reference; nothing is invented.
+    anchors:
+      0: Invents facts or contradicts the context.
+      5: Mostly supported but includes at least one unsupported or vague claim.
+      10: Every claim is directly supported by the context.
+  - name: expectation_met
+    description: The answer satisfies every listed expectation for this case.
+    anchors:
+      0: Violates the main expectation.
+      5: Partially satisfies the expectations.
+      10: Fully satisfies every expectation.
+  - name: helpfulness
+    description: The answer resolves the user's request clearly and concisely.
+    anchors:
+      0: Does not address the request.
+      5: Addresses it but is unclear, incomplete or padded.
+      10: Clear, complete and appropriately concise.

@@ -1,0 +1,10 @@
+name: format
+description: Is the output well formed and in the required format?
+show: [expectations]
+dimensions:
+  - name: format_correctness
+    description: Output matches the required structure, fields and length limits.
+    anchors:
+      0: Wrong format or unparseable.
+      5: Right format with minor deviations.
+      10: Exactly the required format.

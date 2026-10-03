@@ -1,0 +1,16 @@
+name: tool_use
+description: Did the agent choose the right tool with valid arguments and use the result correctly?
+show: [expectations, context]
+dimensions:
+  - name: tool_selection
+    description: The selected tool is the right one for the task, or no tool when none fits.
+    anchors:
+      0: Wrong tool or a tool call where none was needed.
+      5: Reasonable but not the best tool.
+      10: Exactly the right tool.
+  - name: argument_quality
+    description: Arguments are valid for the schema and match the user's intent.
+    anchors:
+      0: Invalid or wrong arguments.
+      5: Valid but imprecise arguments.
+      10: Valid and exactly matching the intent.

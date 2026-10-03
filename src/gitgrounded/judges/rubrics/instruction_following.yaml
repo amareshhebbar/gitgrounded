@@ -1,0 +1,16 @@
+name: instruction_following
+description: Does the answer follow the system instructions and the case expectations exactly?
+show: [context, expectations]
+dimensions:
+  - name: rule_following
+    description: Obeys every applicable instruction, including format rules and prohibitions.
+    anchors:
+      0: Breaks a critical instruction.
+      5: Follows most instructions but misses one minor rule.
+      10: Follows every applicable instruction.
+  - name: expectation_met
+    description: The answer satisfies every listed expectation for this case.
+    anchors:
+      0: Violates the main expectation.
+      5: Partially satisfies the expectations.
+      10: Fully satisfies every expectation.
