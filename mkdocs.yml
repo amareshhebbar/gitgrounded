@@ -1,0 +1,22 @@
+site_name: GitGrounded
+site_description: Auto generated benchmarks, prompt and model comparison, framework benchmarks and signed certificates for LLM apps
+repo_url: https://github.com/amareshhebbar/gitgrounded
+theme:
+  name: material
+  palette:
+    - scheme: default
+      toggle: {icon: material/weather-night, name: Dark mode}
+    - scheme: slate
+      toggle: {icon: material/weather-sunny, name: Light mode}
+nav:
+  - Home: index.md
+  - Compare prompts and models: compare.md
+  - Benchmark frameworks and agents: frameworks.md
+  - Automatic benchmarks: coverage.md
+  - Evidence and certificates: evidence.md
+  - Stability: stability.md
+  - Roadmap: ROADMAP.md
+markdown_extensions:
+  - admonition
+  - tables
+  - pymdownx.superfences
