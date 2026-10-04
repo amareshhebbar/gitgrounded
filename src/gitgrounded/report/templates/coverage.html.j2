@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GitGrounded coverage {{ suite }}</title>
+<style>{{ css }}</style>
+</head>
+<body>
+<main>
+<div class="panel hero">
+  <div>
+    <h1>Coverage: {{ suite }}</h1>
+    <div class="sub">suite {{ meta.version or 'unversioned' }} &middot; {{ meta.created_at }} &middot; generator {{ meta.generator }}</div>
+  </div>
+</div>
+
+<h2>Summary</h2>
+<div class="grid">
+  <div class="card"><div class="k">behaviors covered</div><div class="v">{{ cov.summary.behaviors_covered }} / {{ cov.summary.behaviors }}</div><div class="ci">at least {{ cov.summary.min_cases_per_behavior }} cases each</div></div>
+  <div class="card"><div class="k">cases</div><div class="v">{{ cov.summary.cases }}</div><div class="ci">{% for o, n in cov.summary.cases_by_origin.items() %}{{ o }} {{ n }} {% endfor %}</div></div>
+  <div class="card"><div class="k">condition coverage (t={{ cov.summary.strength }})</div><div class="v">{{ cov.summary.tuple_coverage | pct }}</div><div class="ci">share of required condition combinations present</div></div>
+  <div class="card"><div class="k">mutation score</div><div class="v">{{ cov.summary.mutation_score | pct }}</div><div class="ci">{{ mutation.killed or 0 }} of {{ mutation.total or 0 }} injected faults detected{% if mutation.target %} &middot; target {{ mutation.target | pct }}{% endif %}</div></div>
+  <div class="card"><div class="k">human reviewed</div><div class="v">{{ cov.summary.reviewed_fraction | pct }}</div></div>
+  {% if mutation.minimal_cases %}<div class="card"><div class="k">minimal CI suite</div><div class="v">{{ mutation.minimal_cases }}</div><div class="ci">cases that keep the same mutation score</div></div>{% endif %}
+</div>
+
+<h2>Behaviors</h2>
+<div class="panel" style="overflow:auto">
+<table>
+  <tr><th>id</th><th>kind</th><th>severity</th><th>statement</th><th>cases</th><th>conditions</th><th>mutants killed / survived</th></tr>
+  {% for b in cov.behaviors %}
+  <tr>
+    <td class="mono">{{ b.id }}</td><td>{{ b.kind }}{% if b.implicit %} (implicit){% endif %}</td><td>{{ b.severity }}</td>
+    <td>{{ b.statement }}{% if b.source_text %}<div class="sub" style="font-size:12px">source: {{ b.source_text[:220] }}</div>{% endif %}</td>
+    <td>{{ b.cases }}</td>
+    <td>{% if b.tuple_coverage is not none %}<div class="bar"><span style="width:{{ (100 * b.tuple_coverage) | round(0) }}%"></span></div><span class="sub">{{ b.tuple_coverage | pct }}</span>{% else %}n/a{% endif %}</td>
+    <td><span class="ok">{{ b.mutants_killed }}</span> / <span class="{{ 'bad' if b.mutants_survived else 'sub' }}">{{ b.mutants_survived }}</span></td>
+  </tr>
+  {% endfor %}
+</table>
+</div>
+
+<h2>Condition heatmap</h2>
+<div class="panel" style="overflow:auto">
+<table class="heat">
+  <tr><th>behavior</th>{% for d, values in dims.items() %}{% if values | length > 1 %}{% for v in values %}<th title="{{ d }}">{{ d[:4] }}:{{ v[:10] }}</th>{% endfor %}{% endif %}{% endfor %}</tr>
+  {% for b in cov.behaviors %}
+  <tr><td class="mono">{{ b.id }}</td>
+    {% for d, values in dims.items() %}{% if values | length > 1 %}{% for v in values %}{% set n = cov.heatmap.get(b.id, {}).get(d, {}).get(v, 0) %}
+    <td class="h{{ 0 if n == 0 else 1 }}" style="background:rgba(31,138,76,{{ [n * 0.22, 0.9] | min }})">{{ n if n else '.' }}</td>
+    {% endfor %}{% endif %}{% endfor %}
+  </tr>
+  {% endfor %}
+</table>
+</div>
+
+{% if mutation.mutants %}
+<h2>Mutation testing</h2>
+<div class="panel" style="overflow:auto">
+<table>
+  <tr><th>mutant</th><th>operator</th><th>change</th><th>result</th><th>detected by</th></tr>
+  {% for m in mutation.mutants %}
+  <tr><td class="mono">{{ m.id }}</td><td>{{ m.operator }}</td><td>{{ m.description }}</td>
+  <td class="{{ 'ok' if m.killed else ('sub' if m.equivalent else 'bad') }}">{{ 'detected' if m.killed else ('equivalent, not scored' if m.equivalent else 'survived') }}{% if m.repaired %} (after repair){% endif %}</td>
+  <td class="mono">{{ m.killing_cases[:6] | join(', ') }}{% if m.killing_cases | length > 6 %} +{{ m.killing_cases | length - 6 }}{% endif %}</td></tr>
+  {% endfor %}
+</table>
+</div>
+{% endif %}
+
+{% if logs.clusters %}
+<h2>Production traffic</h2>
+<div class="panel" style="overflow:auto">
+<p class="sub">{{ logs.total_messages }} messages, {{ logs.clusters | length }} intent clusters. Clusters without a matching behavior are traffic the prompt never addresses.</p>
+<table>
+  <tr><th>cluster</th><th>share</th><th>mapped behavior</th><th>examples</th></tr>
+  {% for c in logs.clusters %}
+  <tr><td>{{ c.label }}</td><td>{{ c.share | pct }}</td><td class="{{ 'mono' if c.behavior else 'bad' }}">{{ c.behavior or 'untested traffic' }}</td><td>{{ c.samples[:2] | join(' | ') }}</td></tr>
+  {% endfor %}
+</table>
+{% if logs.unseen_behaviors %}<p class="sub">Behaviors with no matching traffic: {{ logs.unseen_behaviors | join(', ') }}</p>{% endif %}
+</div>
+{% endif %}
+
+<footer>Generated by GitGrounded. Coverage is computed from the suite files in .gitgrounded/suites/{{ suite }}.</footer>
+</main>
+</body>
+</html>
