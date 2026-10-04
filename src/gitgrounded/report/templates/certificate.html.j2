@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GitGrounded Certificate</title>
+<style>{{ css }}
+.cert{border:2px solid var(--line);border-radius:16px;padding:28px;background:var(--panel)}
+.seal{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.big2{font-size:30px;font-weight:750;margin:6px 0}
+.reasons li{margin:2px 0}
+</style>
+</head>
+<body>
+<main>
+<div class="cert">
+  <div class="seal">GitGrounded {{ c.kind }} certificate &middot; {{ c.id }}</div>
+  <div class="big2 {{ 'ok' if c.certified else 'bad' }}">{{ 'CERTIFIED' if c.certified else 'NOT CERTIFIED' }}</div>
+  <div>{{ c.project }} &middot; issued {{ c.created_at }} &middot; gitgrounded {{ c.tool_version }}</div>
+  {% if c.reasons %}<ul class="reasons">{% for r in c.reasons %}<li class="bad">{{ r }}</li>{% endfor %}</ul>{% endif %}
+</div>
+
+<h2>Leaderboard</h2>
+<div class="panel" style="overflow:auto">
+<table>
+  <tr><th>rank</th><th>candidate</th><th>prompt</th><th>model</th><th>score [95% CI]</th><th>code checks</th><th>vs baseline</th><th>wins / losses</th><th>cost</th><th>p50</th></tr>
+  {% for r in c.leaderboard %}
+  <tr>
+    <td>{{ r.rank }}</td><td class="mono">{{ r.candidate }}</td><td>{{ r.prompt }}</td><td class="mono">{{ r.model }}</td>
+    <td>{{ r.score_mean | fmt }} [{{ r.ci_lower | fmt }}, {{ r.ci_upper | fmt }}]</td>
+    <td>{{ r.assertion_pass_rate | pct }}</td>
+    <td>{% if r.verdict_vs_baseline %}<span class="badge {{ r.verdict_vs_baseline if r.verdict_vs_baseline in ['PASS','WARN','FAIL'] else 'IMPROVED' }}">{{ r.verdict_vs_baseline }}</span>{% endif %}{% if r.delta is not none %} {{ '%+.2f' % r.delta }}{% endif %}</td>
+    <td>{% if r.win_rate is not none %}{{ r.win_rate | pct }} / {{ r.loss_rate | pct }}{% endif %}</td>
+    <td>${{ r.cost_usd | fmt(4) }}</td><td>{{ r.p50_ms | fmt(0) }} ms</td>
+  </tr>
+  {% endfor %}
+</table>
+</div>
+
+<h2>Why this result can be trusted</h2>
+<div class="grid">
+  <div class="card"><div class="k">locked AI generated questions</div><div class="v">{{ c.suite.cases }}</div><div class="ci">{{ c.suite.behaviors }} behaviors &middot; {{ c.suite.integrity }} &middot; generator {{ c.suite.generator }}</div></div>
+  <div class="card"><div class="k">judge trap accuracy</div><div class="v {{ 'ok' if c.traps.passed else 'bad' }}">{{ c.traps.correct }} / {{ c.traps.total }}</div><div class="ci">threshold {{ c.traps.threshold | pct }}; known good and known bad answers graded live</div></div>
+  <div class="card"><div class="k">judge agreement with humans</div><div class="v">{% if c.calibration %}{{ c.calibration.pass_agreement | pct }}{% else %}n/a{% endif %}</div><div class="ci">{% if c.calibration %}{{ c.calibration.labels }} labels &middot; kappa {{ c.calibration.cohen_kappa_pass | fmt }}{% else %}no human labels provided{% endif %}</div></div>
+  <div class="card"><div class="k">planted faults detected</div><div class="v">{% if c.coverage and c.coverage.mutation_score is not none %}{{ c.coverage.mutation_score | pct }}{% else %}n/a{% endif %}</div><div class="ci">{% if c.coverage %}behavior coverage {{ c.coverage.behavior_coverage | pct }}{% endif %}</div></div>
+  <div class="card"><div class="k">judge</div><div class="v" style="font-size:15px">{{ c.judge.provider }} / {{ c.judge.model }}</div><div class="ci">temperature {{ c.judge.temperature }}{% if c.panel %} &middot; panel {{ c.panel | join(', ') }}{% endif %}{% if c.offline %} &middot; OFFLINE MOCK MODE{% endif %}</div></div>
+</div>
+
+<h2>Evidence</h2>
+<div class="panel kv">
+  <div>suite</div><div class="mono">{{ c.suite.name }} {{ c.suite.version }} &middot; dataset {{ c.suite.dataset_hash }}</div>
+  {% for p in c.pairs %}<div>{{ p.name }}</div><div class="mono">{{ p.verdict }} &middot; bundle sha256 {{ p.bundle_sha256 }} &middot; merkle {{ p.merkle_root }}</div>{% endfor %}
+  <div>verify</div><div class="mono">pip install "gitgrounded[sign]" &amp;&amp; gitgrounded verify &lt;certificate&gt;.ggb</div>
+</div>
+<footer>This page is only meaningful inside its signed .ggb bundle. Verify the bundle, not the page. A self issued certificate proves the results were not edited after the run and which identity signed them; it does not prove the run environment was independent.</footer>
+</main>
+</body>
+</html>
