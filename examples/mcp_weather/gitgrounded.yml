@@ -1,0 +1,31 @@
+version: 1
+
+project:
+  name: mcp-weather-example
+
+providers:
+  judge:
+    provider: anthropic
+    model: claude-sonnet-4-6
+
+targets:
+  weather:
+    type: mcp
+    transport: stdio
+    command: ["python", "server.py"]
+    watch:
+      - server.py
+      - descriptions.json
+    agent:
+      provider: anthropic
+      model: claude-sonnet-4-6
+
+suites:
+  tools:
+    target: weather
+    cases: cases.jsonl
+    judges:
+      - type: rubric
+        rubric: tool_use
+    generate:
+      enabled: false

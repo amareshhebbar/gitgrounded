@@ -1,0 +1,3 @@
+{"id": "w1", "input": "What's the weather going to be in Bengaluru tomorrow?", "assertions": [{"type": "tool_called", "tool": "get_forecast"}]}
+{"id": "w2", "input": "Is the air safe to breathe in Delhi right now?", "assertions": [{"type": "tool_called", "tool": "get_air_quality"}]}
+{"id": "w3", "input": "Forecast for Mumbai for the next 3 days please", "assertions": [{"type": "tool_called", "tool": "get_forecast"}]}

@@ -1,0 +1,4 @@
+{
+  "get_forecast": "Get the weather forecast for a city for the next N days.",
+  "get_air_quality": "Get the current air quality index (AQI) for a city."
+}

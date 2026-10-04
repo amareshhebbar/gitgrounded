@@ -1,0 +1,4 @@
+{"tools": [
+  {"name": "get_forecast", "description": "Weather data.", "inputSchema": {"type": "object", "properties": {"city": {"type": "string"}, "days": {"type": "integer"}, "units": {"type": "string", "enum": ["metric", "imperial"]}}, "required": ["city", "units"]}},
+  {"name": "get_aqi", "description": "Get the current air quality index (AQI) for a city.", "inputSchema": {"type": "object", "properties": {"city": {"type": "string"}}, "required": ["city"]}}
+]}

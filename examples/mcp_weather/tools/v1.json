@@ -1,0 +1,4 @@
+{"tools": [
+  {"name": "get_forecast", "description": "Get the weather forecast for a city for the next N days.", "inputSchema": {"type": "object", "properties": {"city": {"type": "string"}, "days": {"type": "integer"}}, "required": ["city"]}},
+  {"name": "get_air_quality", "description": "Get the current air quality index (AQI) for a city.", "inputSchema": {"type": "object", "properties": {"city": {"type": "string"}}, "required": ["city"]}}
+]}
