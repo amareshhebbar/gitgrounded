@@ -1,0 +1,31 @@
+name: GitGrounded dogfood
+
+on:
+  pull_request:
+    paths:
+      - "examples/triage/**"
+      - "src/**"
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+  attestations: write
+
+jobs:
+  triage-example:
+    runs-on: ubuntu-latest
+    env:
+      GITGROUNDED_OFFLINE: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./action
+        with:
+          version: local
+          working-directory: examples/triage
+          suite: core
+          base: origin/${{ github.base_ref }}
+          head: HEAD
+          fail-on: never
