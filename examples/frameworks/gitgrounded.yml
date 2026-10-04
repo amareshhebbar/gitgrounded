@@ -1,0 +1,18 @@
+version: 1
+
+project:
+  name: frameworks-example
+
+targets:
+  langgraph_agent:
+    type: framework
+    entry: agents_app:GraphLike()
+    framework: langgraph
+  strands_agent:
+    type: framework
+    entry: agents_app:build_strands()
+    framework: strands
+  plain_function:
+    type: framework
+    entry: agents_app:weak_bot
+    framework: generic
