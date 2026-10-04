@@ -1,0 +1,23 @@
+version: 1
+
+project:
+  name: real-agents-example
+
+targets:
+  langgraph_agent:
+    type: framework
+    entry: langgraph_app:build_graph()
+    framework: langgraph
+    watch: [langgraph_app.py, support.py]
+  strands_agent:
+    type: framework
+    entry: strands_app:build_agent()
+    framework: strands
+    watch: [strands_app.py, support.py]
+  a2a_agent:
+    type: a2a
+    url: ${A2A_URL:-http://127.0.0.1:9999/}
+  adk_agent:
+    type: adk
+    base_url: ${ADK_URL:-http://127.0.0.1:8000}
+    app_name: support_adk
