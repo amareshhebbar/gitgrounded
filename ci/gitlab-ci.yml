@@ -1,0 +1,16 @@
+gitgrounded:
+  image: python:3.12-slim
+  stage: test
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  before_script:
+    - apt-get update && apt-get install -y --no-install-recommends git
+    - pip install "gitgrounded[sign]"
+    - git fetch origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
+  script:
+    - gitgrounded run --base "origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --head HEAD --bundle evidence.ggb --sign local --junit junit.xml --html report.html --markdown summary.md
+  artifacts:
+    when: always
+    paths: [evidence.ggb, report.html, summary.md]
+    reports:
+      junit: junit.xml

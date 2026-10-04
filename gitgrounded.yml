@@ -1,0 +1,10 @@
+targets:
+  ai-chatbot:
+    endpoint: http://localhost:8765/ai-chatbot
+    questions: data/seed_cases.json
+  ai-chatbot2:
+    endpoint: http://localhost:8765/ai-chatbot2
+    questions: data/seed_cases.json
+  ai-chatbot3:
+    endpoint: http://localhost:8765/ai-chatbot3
+    questions: data/seed_cases.json

@@ -1,0 +1,15 @@
+- id: gitgrounded-mcp-diff
+  name: gitgrounded MCP schema diff
+  entry: gitgrounded mcp diff --base HEAD --head @worktree --fail-on breaking
+  language: python
+  additional_dependencies: ["gitgrounded[mcp]"]
+  pass_filenames: false
+  always_run: true
+
+- id: gitgrounded-quick
+  name: gitgrounded quick regression check
+  entry: gitgrounded run --base HEAD --head @worktree --quick --no-generate
+  language: python
+  additional_dependencies: ["gitgrounded"]
+  pass_filenames: false
+  stages: [pre-push]

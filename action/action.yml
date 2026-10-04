@@ -1,0 +1,167 @@
+name: GitGrounded
+description: Regression test LLM prompts, models, tools and agents on every pull request, with a signed, verifiable evidence bundle
+author: Amaresh Hebbar
+branding:
+  icon: check-circle
+  color: green
+
+inputs:
+  suite:
+    description: Suite name from gitgrounded.yml (default first suite)
+    required: false
+    default: ""
+  base:
+    description: Baseline git ref
+    required: false
+    default: ""
+  head:
+    description: Candidate git ref
+    required: false
+    default: HEAD
+  working-directory:
+    description: Directory that contains gitgrounded.yml
+    required: false
+    default: "."
+  version:
+    description: gitgrounded version to install (empty for latest); use "local" to install from the checked out repo
+    required: false
+    default: ""
+  python-version:
+    description: Python version
+    required: false
+    default: "3.12"
+  sign:
+    description: auto, sigstore, local or none
+    required: false
+    default: auto
+  attest:
+    description: Create a GitHub artifact attestation for the bundle (needs attestations write and id-token write)
+    required: false
+    default: "true"
+  comment:
+    description: Post or update one sticky PR comment with the result
+    required: false
+    default: "true"
+  fail-on:
+    description: fail, warn or never
+    required: false
+    default: fail
+  quick:
+    description: Run the quick subset
+    required: false
+    default: "false"
+  minimal:
+    description: Use the mutation minimized suite
+    required: false
+    default: "false"
+  extra-args:
+    description: Extra arguments for gitgrounded run
+    required: false
+    default: ""
+
+outputs:
+  verdict:
+    description: PASS, WARN or FAIL
+    value: ${{ steps.run.outputs.verdict }}
+  bundle:
+    description: Path to the evidence bundle
+    value: ${{ steps.run.outputs.bundle }}
+  exit-code:
+    description: gitgrounded exit code
+    value: ${{ steps.run.outputs.exit_code }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install gitgrounded
+      shell: bash
+      run: |
+        if [ "${{ inputs.version }}" = "local" ]; then
+          pip install "${GITHUB_WORKSPACE}[sign]"
+        elif [ -n "${{ inputs.version }}" ]; then
+          pip install "gitgrounded[sign]==${{ inputs.version }}"
+        else
+          pip install "gitgrounded[sign]"
+        fi
+
+    - name: Restore cache
+      uses: actions/cache@v4
+      with:
+        path: ${{ inputs.working-directory }}/.gitgrounded/cache
+        key: gitgrounded-${{ runner.os }}-${{ hashFiles(format('{0}/gitgrounded.yml', inputs.working-directory)) }}-${{ github.sha }}
+        restore-keys: |
+          gitgrounded-${{ runner.os }}-${{ hashFiles(format('{0}/gitgrounded.yml', inputs.working-directory)) }}-
+          gitgrounded-${{ runner.os }}-
+
+    - name: Run gitgrounded
+      id: run
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        BASE="${{ inputs.base }}"
+        if [ -z "$BASE" ]; then
+          if [ -n "${{ github.base_ref }}" ]; then BASE="origin/${{ github.base_ref }}"; else BASE="HEAD~1"; fi
+        fi
+        OUT="${RUNNER_TEMP}/gitgrounded"
+        mkdir -p "$OUT"
+        ARGS=(run --base "$BASE" --head "${{ inputs.head }}" --bundle "$OUT/evidence.ggb" --sign "${{ inputs.sign }}" --markdown "$OUT/summary.md" --html "$OUT/report.html" --junit "$OUT/junit.xml" --json-out "$OUT/result.json" --fail-on "${{ inputs.fail-on }}")
+        if [ -n "${{ inputs.suite }}" ]; then ARGS+=(--suite "${{ inputs.suite }}"); fi
+        if [ "${{ inputs.quick }}" = "true" ]; then ARGS+=(--quick); fi
+        if [ "${{ inputs.minimal }}" = "true" ]; then ARGS+=(--minimal); fi
+        set +e
+        gitgrounded "${ARGS[@]}" ${{ inputs.extra-args }}
+        CODE=$?
+        set -e
+        echo "exit_code=$CODE" >> "$GITHUB_OUTPUT"
+        if [ -f "$OUT/result.json" ]; then
+          echo "verdict=$(python -c 'import json,sys;print(json.load(open(sys.argv[1]))["verdict"])' "$OUT/result.json")" >> "$GITHUB_OUTPUT"
+        fi
+        if [ -f "$OUT/evidence.ggb" ]; then
+          echo "bundle=$OUT/evidence.ggb" >> "$GITHUB_OUTPUT"
+          python -c 'import zipfile,sys;open(sys.argv[2],"wb").write(zipfile.ZipFile(sys.argv[1]).read("manifest.json"))' "$OUT/evidence.ggb" "$OUT/manifest.json"
+        fi
+        echo "out=$OUT" >> "$GITHUB_OUTPUT"
+
+    - name: Attest evidence bundle
+      if: ${{ inputs.attest == 'true' && steps.run.outputs.bundle != '' }}
+      uses: actions/attest@v2
+      with:
+        subject-path: ${{ steps.run.outputs.bundle }}
+        predicate-type: https://gitgrounded.dev/attestation/eval-run/v1
+        predicate-path: ${{ steps.run.outputs.out }}/manifest.json
+
+    - name: Upload artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: gitgrounded-${{ github.run_id }}-${{ github.run_attempt }}
+        path: ${{ steps.run.outputs.out }}
+        if-no-files-found: ignore
+
+    - name: Sticky PR comment
+      if: ${{ always() && inputs.comment == 'true' && github.event_name == 'pull_request' && steps.run.outputs.out != '' }}
+      uses: actions/github-script@v7
+      env:
+        SUMMARY_PATH: ${{ steps.run.outputs.out }}/summary.md
+      with:
+        script: |
+          const fs = require('fs');
+          if (!fs.existsSync(process.env.SUMMARY_PATH)) { return; }
+          const marker = '<!-- gitgrounded-report -->';
+          const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+          const body = fs.readFileSync(process.env.SUMMARY_PATH, 'utf8') + `\n[Run, HTML report and evidence bundle](${runUrl})\n`;
+          const { data: comments } = await github.rest.issues.listComments({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, per_page: 100 });
+          const existing = comments.find(c => c.body && c.body.includes(marker));
+          if (existing) {
+            await github.rest.issues.updateComment({ owner: context.repo.owner, repo: context.repo.repo, comment_id: existing.id, body });
+          } else {
+            await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, body });
+          }
+
+    - name: Apply verdict
+      shell: bash
+      run: exit ${{ steps.run.outputs.exit_code || 2 }}
