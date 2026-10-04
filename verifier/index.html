@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GitGrounded Verifier</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{--bg:#f7f7f5;--panel:#fff;--ink:#1b1d21;--muted:#6b7078;--line:#e3e3df;--ok:#1f8a4c;--bad:#c53030;--warn:#b7791f;--code:#f2f2ef}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1115;--panel:#171a21;--ink:#e6e7ea;--muted:#9aa1ad;--line:#2a2f3a;--ok:#48bb78;--bad:#fc8181;--warn:#ecc94b;--code:#11141a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:860px;margin:0 auto;padding:32px 16px 64px}
+h1{font-size:24px;margin:0 0 4px}
+.sub{color:var(--muted)}
+#drop{margin:24px 0;border:2px dashed var(--line);border-radius:14px;padding:44px 16px;text-align:center;background:var(--panel);cursor:pointer}
+#drop.over{border-color:var(--ok)}
+.status{font-size:22px;font-weight:700;margin:8px 0}
+.ok{color:var(--ok)}.bad{color:var(--bad)}.warn{color:var(--warn)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin:14px 0}
+table{width:100%;border-collapse:collapse;font-size:13px}
+td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;word-break:break-all}
+pre{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:10px;white-space:pre-wrap;word-break:break-all;font-size:12.5px}
+button{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:6px 12px;cursor:pointer}
+</style>
+</head>
+<body>
+<main>
+<h1>GitGrounded Verifier</h1>
+<div class="sub">Drop a <span class="mono">.ggb</span> evidence bundle. Everything runs in your browser; the file is never uploaded.</div>
+<div id="drop">Drop bundle here or click to choose<input id="file" type="file" accept=".ggb,.zip" hidden></div>
+<div id="out"></div>
+</main>
+<script>
+(function(){
+var RECORD_FILES=["records/cases.jsonl","records/transcripts.jsonl","records/judgements.jsonl","records/assertions.jsonl"];
+var out=document.getElementById("out");
+var drop=document.getElementById("drop");
+var input=document.getElementById("file");
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]})}
+function hex(buf){return Array.prototype.map.call(new Uint8Array(buf),function(b){return("0"+b.toString(16)).slice(-2)}).join("")}
+function concat(a,b){var o=new Uint8Array(a.length+b.length);o.set(a,0);o.set(b,a.length);return o}
+async function sha(bytes){return new Uint8Array(await crypto.subtle.digest("SHA-256",bytes))}
+async function merkleRoot(leaves){
+  if(!leaves.length)return hex(await sha(new Uint8Array(0)));
+  var level=[];
+  for(var i=0;i<leaves.length;i++)level.push(await sha(concat(new Uint8Array([0]),leaves[i])));
+  while(level.length>1){
+    var next=[];
+    for(var j=0;j<level.length;j+=2){
+      if(j+1<level.length)next.push(await sha(concat(concat(new Uint8Array([1]),level[j]),level[j+1])));
+      else next.push(level[j]);
+    }
+    level=next;
+  }
+  return hex(level[0]);
+}
+function splitLines(bytes){
+  var lines=[],start=0;
+  for(var i=0;i<bytes.length;i++){if(bytes[i]===10){if(i>start)lines.push(bytes.slice(start,i));start=i+1}}
+  if(start<bytes.length)lines.push(bytes.slice(start));
+  return lines;
+}
+function b64(s){var bin=atob(s);var a=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);return a}
+async function innerOk(bytes){
+  try{
+    var z=await JSZip.loadAsync(bytes);var f={};
+    for(var n in z.files){if(!z.files[n].dir)f[n]=await z.files[n].async("uint8array")}
+    var m=JSON.parse(new TextDecoder().decode(f["manifest.json"]));
+    for(var k in m.files){if(!f[k]||hex(await sha(f[k]))!==m.files[k])return false}
+    var lv=[];RECORD_FILES.forEach(function(r){if(f[r])lv=lv.concat(splitLines(f[r]))});
+    return (await merkleRoot(lv))===m.merkle_root;
+  }catch(e){return false}
+}
+async function verify(file){
+  out.innerHTML='<div class="panel">verifying...</div>';
+  var checks=[];var intact=true;
+  function add(name,ok,detail){checks.push([name,ok,detail]);if(ok===false)intact=false}
+  var zip;
+  try{zip=await JSZip.loadAsync(file)}catch(e){out.innerHTML='<div class="panel bad">not a valid bundle: '+esc(e.message)+'</div>';return}
+  var files={};
+  var names=Object.keys(zip.files).filter(function(n){return !zip.files[n].dir});
+  for(var i=0;i<names.length;i++){
+    var n=names[i];
+    if(n.indexOf("..")>=0||n.charAt(0)==="/"){out.innerHTML='<div class="panel bad">unsafe path in bundle</div>';return}
+    files[n]=await zip.files[n].async("uint8array");
+  }
+  if(!files["manifest.json"]){out.innerHTML='<div class="panel bad">manifest.json missing</div>';return}
+  var manifestBytes=files["manifest.json"];
+  var manifest=JSON.parse(new TextDecoder().decode(manifestBytes));
+  var listed=manifest.files||{};
+  for(var name in listed){
+    if(!files[name]){add(name,false,"listed but missing");continue}
+    var h=hex(await sha(files[name]));
+    add(name,h===listed[name],h===listed[name]?"hash matches":"hash mismatch");
+  }
+  var extra=Object.keys(files).filter(function(n){return !(n in listed)&&n!=="manifest.json"&&n.indexOf("signature/")!==0});
+  add("no unlisted files",extra.length===0,extra.length?extra.join(", "):"ok");
+  var leaves=[];
+  RECORD_FILES.forEach(function(f){if(files[f])leaves=leaves.concat(splitLines(files[f]))});
+  var root=await merkleRoot(leaves);
+  add("merkle root",root===manifest.merkle_root,root);
+  if(files["summary.json"]){var sh=hex(await sha(files["summary.json"]));add("summary hash",sh===manifest.summary_sha256,sh)}
+  for(var nm in listed){
+    if(nm.slice(-4)===".ggb"&&files[nm]){var sub=await innerOk(files[nm]);add("nested "+nm,sub,sub?"hashes and merkle root match":"nested bundle tampered")}
+  }
+  var sig={type:"none"};var sigOk=null;
+  if(files["signature/local.json"]){
+    var doc=JSON.parse(new TextDecoder().decode(files["signature/local.json"]));
+    var pub=b64(doc.public_key);
+    var scope=doc.scope||"self_signed";
+    sig={type:"ed25519 ("+(scope==="independent"?"independent: "+(doc.issuer||"unknown issuer"):"self signed")+")",key_id:hex(await sha(pub)).slice(0,16)};
+    try{
+      var key=await crypto.subtle.importKey("raw",pub,{name:"Ed25519"},false,["verify"]);
+      sigOk=await crypto.subtle.verify({name:"Ed25519"},key,b64(doc.signature),manifestBytes);
+      add("ed25519 signature",sigOk,sigOk?"valid for key "+sig.key_id:"INVALID");
+      var want=new URLSearchParams(location.search).get("key");
+      if(sigOk&&want){var match=(want===sig.key_id||want===doc.public_key);add("pinned key",match,match?"matches "+want:"expected "+want+", got "+sig.key_id);sigOk=match;sig.pinned=match&&scope==="independent"}
+    }catch(e){add("ed25519 signature",null,"this browser cannot verify Ed25519; use the CLI")}
+  }else if(files["signature/manifest.sigstore.json"]){
+    sig={type:"sigstore (CI identity)"};
+    add("sigstore signature",null,"present; verify the identity with the CLI or gh attestation verify (commands below)");
+  }else{add("signature",null,"bundle is unsigned")}
+  var status,cls;
+  if(!intact){status="TAMPERED";cls="bad"}
+  else if(sigOk===false){status="SIGNATURE INVALID";cls="bad"}
+  else if(sig.type.indexOf("sigstore")===0){status="INTEGRITY VERIFIED, SIGNED IN CI";cls="ok"}
+  else if(sigOk&&sig.pinned){status="VERIFIED (INDEPENDENT, PINNED KEY)";cls="ok"}
+  else if(sigOk){status="VERIFIED (SELF SIGNED)";cls="ok"}
+  else{status="INTEGRITY VERIFIED, UNSIGNED";cls="warn"}
+  var m=manifest;
+  var html='<div class="panel"><div class="status '+cls+'">'+status+'</div>'+
+  '<div>'+esc(m.project)+' / '+esc(m.suite)+' &middot; verdict <b>'+esc(m.verdict)+'</b> &middot; '+esc(m.created_at)+'</div>'+
+  '<div class="sub">run '+esc(m.run_id)+' &middot; gitgrounded '+esc((m.tool||{}).version)+'</div>'+
+  '<table>'+
+  '<tr><td>base</td><td class="mono">'+esc((m.base||{}).name)+' '+esc((m.base||{}).sha)+'</td></tr>'+
+  '<tr><td>head</td><td class="mono">'+esc((m.head||{}).name)+' '+esc((m.head||{}).sha)+'</td></tr>'+
+  '<tr><td>cases</td><td>'+esc(JSON.stringify(m.counts||{}))+'</td></tr>'+
+  '<tr><td>judge</td><td class="mono">'+esc(JSON.stringify(m.judge||{}))+(m.offline?' (offline mock mode)':'')+'</td></tr>'+
+  '<tr><td>dataset hash</td><td class="mono">'+esc(m.dataset_hash)+'</td></tr>'+
+  '<tr><td>merkle root</td><td class="mono">'+esc(m.merkle_root)+'</td></tr>'+
+  '<tr><td>signature</td><td class="mono">'+esc(JSON.stringify(sig))+'</td></tr>'+
+  (m.ci&&m.ci.GITHUB_REPOSITORY?'<tr><td>CI</td><td class="mono">'+esc(m.ci.GITHUB_REPOSITORY)+' '+esc(m.ci.GITHUB_WORKFLOW_REF||'')+' run '+esc(m.ci.GITHUB_RUN_ID||'')+'</td></tr>':'')+
+  '</table></div>';
+  html+='<div class="panel"><b>Checks</b><table>'+checks.map(function(c){return '<tr><td>'+esc(c[0])+'</td><td class="'+(c[1]===true?'ok':(c[1]===false?'bad':'warn'))+'">'+(c[1]===true?'ok':(c[1]===false?'FAIL':'note'))+'</td><td class="mono">'+esc(c[2])+'</td></tr>'}).join('')+'</table></div>';
+  if(sig.type.indexOf("sigstore")===0||(m.ci&&m.ci.GITHUB_REPOSITORY)){
+    var repo=(m.ci||{}).GITHUB_REPOSITORY||"OWNER/REPO";
+    var wf=(m.ci||{}).GITHUB_WORKFLOW_REF||(repo+"/.github/workflows/gitgrounded.yml@refs/heads/main");
+    html+='<div class="panel"><b>Verify the CI identity</b><pre>pip install "gitgrounded[sign]"\ngitgrounded verify '+esc(file.name)+' --identity https://github.com/'+esc(wf)+'\n\ngh attestation verify '+esc(file.name)+' --repo '+esc(repo)+'</pre></div>';
+  }
+  if(files["report.html"]&&intact){html+='<div class="panel"><button id="open">Open the report contained in this bundle</button></div>'}
+  out.innerHTML=html;
+  var btn=document.getElementById("open");
+  if(btn){btn.onclick=function(){var url=URL.createObjectURL(new Blob([files["report.html"]],{type:"text/html"}));window.open(url,"_blank")}}
+}
+drop.addEventListener("click",function(){input.click()});
+input.addEventListener("change",function(){if(input.files[0])verify(input.files[0])});
+drop.addEventListener("dragover",function(e){e.preventDefault();drop.classList.add("over")});
+drop.addEventListener("dragleave",function(){drop.classList.remove("over")});
+drop.addEventListener("drop",function(e){e.preventDefault();drop.classList.remove("over");if(e.dataTransfer.files[0])verify(e.dataTransfer.files[0])});
+})();
+</script>
+</body>
+</html>
