@@ -1,0 +1,35 @@
+version: 1
+
+project:
+  name: endpoint-bots-example
+
+targets:
+  ai-chatbot:
+    type: http
+    url: http://127.0.0.1:8765/ai-chatbot
+    output: $.answer
+  ai-chatbot2:
+    type: http
+    url: http://127.0.0.1:8765/ai-chatbot2
+    output: $.answer
+  ai-chatbot3:
+    type: http
+    url: http://127.0.0.1:8765/ai-chatbot3
+    output: $.answer
+
+suites:
+  bot1:
+    target: ai-chatbot
+    cases: cases.jsonl
+    generate:
+      enabled: false
+  bot2:
+    target: ai-chatbot2
+    cases: cases.jsonl
+    generate:
+      enabled: false
+  bot3:
+    target: ai-chatbot3
+    cases: cases.jsonl
+    generate:
+      enabled: false

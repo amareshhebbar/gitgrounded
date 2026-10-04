@@ -1,0 +1,3 @@
+{"id": "q1", "input": "How do I reset my password?", "expectations": [{"kind": "must", "text": "gives clear password reset steps"}]}
+{"id": "q2", "input": "Can you explain your refund policy in detail?", "expectations": [{"kind": "must", "text": "explains the refund policy completely"}]}
+{"id": "q3", "input": "What are your support hours?", "expectations": [{"kind": "must", "text": "states the support hours"}]}
