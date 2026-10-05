@@ -45,7 +45,7 @@ dependencies = [
   "rich>=13.7",
   "pydantic>=2.7",
   "numpy>=1.26",
-  "jsonschema>=4.21",
+  "jsonschema>=4.26.0",
 ]
 
 [project.optional-dependencies]
