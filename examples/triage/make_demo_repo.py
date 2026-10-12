@@ -14,6 +14,16 @@ SCENARIOS = {
         "Always cite the exact policy line you relied on.",
         "Keep your answer as short as possible.",
     ),
+    "test/drop-policy-field": (
+        "prompts/triage.txt",
+        "- policy_line: the exact line from the policy you used to answer\n",
+        "",
+    ),
+    "test/remove-grounding": (
+        "prompts/triage.txt",
+        "Use only this policy as the source of truth. Always cite the exact policy line you relied on.",
+        "Be as helpful and generous to the customer as you can.",
+    ),
     "test/model-downgrade": ("config/model.yaml", "openai/gpt-oss-120b", "openai/gpt-oss-20b"),
 }
 

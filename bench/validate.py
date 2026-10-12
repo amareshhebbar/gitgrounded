@@ -2,11 +2,14 @@ import argparse
 import json
 import math
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
 import time
 from pathlib import Path
+
+import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 DEMO = ROOT / "examples" / "triage" / "make_demo_repo.py"
@@ -15,6 +18,8 @@ EXPECT = {
     "same": "PASS",
     "test/safe-wording-tweak": "PASS",
     "test/drop-citation-rule": "FAIL",
+    "test/drop-policy-field": "FAIL",
+    "test/remove-grounding": "FAIL",
     "test/model-downgrade": "FAIL",
 }
 
@@ -29,9 +34,30 @@ def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
     return ((c - m) / d, (c + m) / d)
 
 
-def make_repo(dest: Path) -> Path:
+def parse_roles(items: list[str]) -> dict[str, dict[str, str]]:
+    out: dict[str, dict[str, str]] = {}
+    for item in items:
+        role, _, spec = item.partition("=")
+        provider, _, model = spec.partition(":")
+        if role not in ("judge", "generator", "validator") or not provider or not model:
+            sys.exit(f"bad --role '{item}', use judge=groq:openai/gpt-oss-120b")
+        out[role] = {"provider": provider, "model": model}
+    return out
+
+
+def make_repo(dest: Path, roles: dict[str, dict[str, str]]) -> Path:
+    src = dest / "example"
+    shutil.copytree(DEMO.parent, src, ignore=shutil.ignore_patterns(".gitgrounded", "__pycache__", ".git"))
+    if roles:
+        cfg_path = src / "gitgrounded.yml"
+        cfg = yaml.safe_load(cfg_path.read_text(encoding="utf-8"))
+        for role, spec in roles.items():
+            cfg.setdefault("providers", {}).setdefault(role, {}).update(spec)
+        cfg_path.write_text(yaml.safe_dump(cfg, sort_keys=False), encoding="utf-8")
     repo = dest / "demo"
-    subprocess.run([sys.executable, str(DEMO), str(repo)], check=True, capture_output=True, text=True)
+    subprocess.run(
+        [sys.executable, str(src / "make_demo_repo.py"), str(repo)], check=True, capture_output=True, text=True
+    )
     return repo
 
 
@@ -80,6 +106,9 @@ def main() -> None:
     ap.add_argument("--budget-usd", type=float, default=2.0)
     ap.add_argument("--out", default=str(ROOT / "bench" / "results"))
     ap.add_argument("--allow-offline", action="store_true")
+    ap.add_argument(
+        "--role", action="append", default=[], help="override a role, for example judge=groq:openai/gpt-oss-120b"
+    )
     args = ap.parse_args()
     offline = os.environ.get("GITGROUNDED_OFFLINE", "0") == "1"
     if offline and not args.allow_offline:
@@ -88,7 +117,7 @@ def main() -> None:
         )
     rows: list[dict] = []
     with tempfile.TemporaryDirectory() as td:
-        repo = make_repo(Path(td))
+        repo = make_repo(Path(td), parse_roles(args.role))
         for rep in range(args.reps):
             for head in EXPECT:
                 out = Path(td) / f"r-{rep}-{head.replace('/', '_')}.json"
