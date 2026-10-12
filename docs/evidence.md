@@ -50,7 +50,7 @@ signature/local.json or signature/manifest.sigstore.json
 
 `sign: auto` picks sigstore in GitHub Actions when available, otherwise local.
 
-The GitHub Action also creates an artifact attestation with predicate type `https://gitgrounded.dev/attestation/eval-run/v1` whose predicate is the manifest.
+The GitHub Action also creates an artifact attestation with predicate type `https://amareshhebbar.github.io/gitgrounded/attestation/eval-run/v1` whose predicate is the manifest.
 
 ## Verify
 

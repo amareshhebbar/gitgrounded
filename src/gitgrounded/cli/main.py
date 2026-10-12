@@ -54,6 +54,10 @@ def _engine(args):
         err.print("[yellow]no gitgrounded.yml found; run `gitgrounded init`[/yellow]")
     verbose = getattr(args, "verbose", False)
     log = (lambda m: err.print(f"[dim]{m}[/dim]")) if verbose or sys.stderr.isatty() else (lambda m: None)
+    from gitgrounded.providers.base import is_offline
+
+    if is_offline():
+        err.print("[yellow]offline simulation: results are illustrative, set a provider key for real numbers[/yellow]")
     return Engine(project, cfg, log=log)
 
 
@@ -437,6 +441,14 @@ def cmd_doctor(args) -> int:
             roles.add_row(role, cfg.provider, cfg.model, str(cfg.temperature), escape(ping))
         console.print(roles)
         console.print(f"offline mode: {'ON (all calls use the mock provider)' if is_offline() else 'off'}")
+        from gitgrounded.stats.cost import PRICES_STALE_DAYS, PRICES_UPDATED, prices_age_days
+
+        age = prices_age_days()
+        if age > PRICES_STALE_DAYS:
+            console.print(
+                f"[yellow]price table is {age} days old (updated {PRICES_UPDATED}); costs may be wrong, "
+                "override with prices in gitgrounded.yml or GITGROUNDED_PRICES[/yellow]"
+            )
         return code
     finally:
         engine.close()
@@ -899,6 +911,8 @@ def cmd_verify(args) -> int:
                 console.print(
                     f"head {m['head'].get('name')} {(m['head'].get('sha') or '')[:12]}  base {(m.get('base') or {}).get('name')} {((m.get('base') or {}).get('sha') or '')[:12]}"
                 )
+        if m and m.get("offline"):
+            console.print("[yellow]this bundle came from an offline simulation run, not real models[/yellow]")
         if res.signature:
             console.print(f"signature: {res.signature}")
         bad = [c for c in res.checks if not c["ok"]]
@@ -910,7 +924,12 @@ def cmd_verify(args) -> int:
             for c in res.checks if args.verbose else bad:
                 t.add_row(c["check"], "yes" if c["ok"] else "NO", c["detail"])
             console.print(t)
-    return 0 if res.status.startswith("VERIFIED") else 1
+    if not res.status.startswith("VERIFIED"):
+        return 1
+    if getattr(args, "require_signature", False) and res.status == "VERIFIED_UNSIGNED":
+        err.print("[red]bundle is intact but unsigned; --require-signature refuses it[/red]")
+        return 3
+    return 0
 
 
 def cmd_calibrate(args) -> int:
@@ -1017,7 +1036,7 @@ def cmd_schema(args) -> int:
 def cmd_init(args) -> int:
     from gitgrounded.cli.init import init_project
 
-    return init_project(Path.cwd(), args.force)
+    return init_project(Path.cwd(), args.force, args.provider, args.yes, not args.no_git)
 
 
 def _add_common(p, outputs: bool = True) -> None:
@@ -1055,6 +1074,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("init", help="create gitgrounded.yml and a starter cases file")
     p.add_argument("--force", action="store_true")
+    p.add_argument(
+        "--provider",
+        choices=["anthropic", "openai", "groq", "deepseek", "ollama"],
+        help="provider for the app, judge and generator (default: detect from your environment)",
+    )
+    p.add_argument("--yes", "-y", action="store_true", help="initialize git without asking")
+    p.add_argument("--no-git", action="store_true", help="do not offer to initialize a git repository")
     p.set_defaults(fn=cmd_init)
 
     p = sub.add_parser("run", help="compare two git refs of your app")
@@ -1221,6 +1247,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--issuer", default="https://token.actions.githubusercontent.com")
     p.add_argument("--public-key", help="expected ed25519 key id or base64 public key for self signed bundles")
     p.add_argument("--format", choices=["terminal", "json"], default="terminal")
+    p.add_argument("--require-signature", action="store_true", help="exit 3 when the bundle is intact but unsigned")
     p.add_argument("--verbose", "-v", action="store_true")
     p.set_defaults(fn=cmd_verify)
 

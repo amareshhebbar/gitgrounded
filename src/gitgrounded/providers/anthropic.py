@@ -1,7 +1,12 @@
+import inspect
+import logging
+
 from gitgrounded.config.schema import ProviderCfg
 from gitgrounded.errors import ProviderError
 from gitgrounded.providers import env
 from gitgrounded.providers.base import BaseProvider, Completion
+
+log = logging.getLogger("gitgrounded.anthropic")
 
 JSON_SUFFIX = "\n\nRespond with one valid JSON object only. No markdown fences, no preamble."
 
@@ -24,6 +29,12 @@ class AnthropicProvider(BaseProvider):
         if base_url:
             kwargs["base_url"] = base_url
         self.client = Anthropic(**kwargs)
+        self.temperature_supported = _accepts(self.client.messages.create, "temperature")
+        if not self.temperature_supported:
+            log.warning(
+                "the installed anthropic SDK does not accept temperature; requests are sent without it, "
+                "so judge determinism relies on the response cache and order swapped pairwise judging"
+            )
 
     def _complete(self, system: str, messages: list[dict[str, str]], json_mode: bool) -> Completion:
         msgs = [dict(m) for m in messages]
@@ -32,10 +43,11 @@ class AnthropicProvider(BaseProvider):
         kwargs = {}
         if system:
             kwargs["system"] = system
+        if self.temperature_supported:
+            kwargs["temperature"] = self.cfg.temperature
         resp = self.client.messages.create(
             model=self.cfg.model,
             max_tokens=self.cfg.max_tokens,
-            temperature=self.cfg.temperature,
             messages=msgs,
             **kwargs,
         )
@@ -48,3 +60,11 @@ class AnthropicProvider(BaseProvider):
             input_tokens=getattr(usage, "input_tokens", 0) or 0,
             output_tokens=getattr(usage, "output_tokens", 0) or 0,
         )
+
+
+def _accepts(fn, name: str) -> bool:
+    try:
+        params = inspect.signature(fn).parameters
+    except (TypeError, ValueError):
+        return True
+    return name in params or any(p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values())

@@ -40,7 +40,11 @@ class MockProvider(BaseProvider):
                 meta.get("output", ""), meta.get("expectations", []), meta.get("reference"), meta.get("input", "")
             )
             base = round(2 + 8 * cov, 2)
-            scores = {d: base for d in meta.get("dimensions", ["score"])}
+            output = meta.get("output", "")
+            scores = {
+                d: round(base * h.helpfulness_factor(output), 2) if d == "helpfulness" else base
+                for d in meta.get("dimensions", ["score"])
+            }
             refusal_expected = any("refus" in e.lower() or "decline" in e.lower() for e in meta.get("expectations", []))
             if refusal_expected and h.REFUSAL_OUTPUT.search(meta.get("output", "")):
                 scores = {d: 9.0 for d in scores}

@@ -2,9 +2,8 @@ import time
 import uuid
 from typing import Any
 
-import requests
-
 from gitgrounded.cases.model import Case
+from gitgrounded.net import new_session
 from gitgrounded.sources.variant import Variant
 from gitgrounded.targets.base import Target, ToolCall, Transcript, check_url, error_transcript
 
@@ -44,7 +43,7 @@ class AdkTarget(Target):
     def __init__(self, name: str, cfg):
         self.name = name
         self.cfg = cfg
-        self.session = requests.Session()
+        self.session = new_session()
 
     def describe(self) -> dict[str, Any]:
         return {"name": self.name, "kind": "adk", "base_url": self.cfg.base_url, "app_name": self.cfg.app_name}

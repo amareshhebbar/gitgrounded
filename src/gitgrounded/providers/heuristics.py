@@ -185,6 +185,26 @@ def coverage_score(output: str, expectations: list[str], reference: str | None, 
     return len([k for k in kws if k in out_kws]) / len(kws)
 
 
+WORD_LIMIT = re.compile(
+    r"\b(?:in|under|within|at most|max(?:imum)?(?: of)?|no more than|fewer than|exactly)\s+(\d{1,3})\s+words?\b|\b(\d{1,3})[- ]words?\b",
+    re.I,
+)
+
+
+def word_limit(system: str) -> int | None:
+    limits = []
+    for m in WORD_LIMIT.finditer(system or ""):
+        value = int(m.group(1) or m.group(2))
+        if value > 0:
+            limits.append(value)
+    return min(limits) if limits else None
+
+
+def helpfulness_factor(output: str) -> float:
+    words = len((output or "").split())
+    return min(1.0, 0.55 + words / 20.0)
+
+
 def mock_target_chat(system: str, user: str, json_mode: bool) -> str:
     rules = []
     for raw in re.split(r"(?<=[.!?])\s+|\n+", system or ""):
@@ -202,9 +222,15 @@ def mock_target_chat(system: str, user: str, json_mode: bool) -> str:
         else:
             applied.append(" ".join(kws))
     answer = f"Regarding {' '.join(user_kws) or 'your request'}: handled per guidance."
+    limit = word_limit(system)
     if json_mode or re.search(r"\bjson\b", system or "", re.I):
+        if limit:
+            answer = " ".join(answer.split()[:limit])
         return json.dumps({"answer": answer, "applied": applied}, sort_keys=True)
-    return answer + (" Notes: " + "; ".join(applied) if applied else "")
+    text = answer + (" Notes: " + "; ".join(applied) if applied else "")
+    if limit:
+        text = " ".join(text.split()[:limit])
+    return text
 
 
 STYLE_PREFIX = {
