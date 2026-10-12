@@ -16,7 +16,9 @@ class Cache:
         return self.root / namespace / key[:2] / f"{key}.json"
 
     def key(self, *parts: Any) -> str:
-        return content_hash(list(parts))
+        from gitgrounded.providers.base import is_offline
+
+        return content_hash([{"offline": is_offline()}, *parts])
 
     def get(self, namespace: str, key: str) -> Any | None:
         if not self.enabled:
