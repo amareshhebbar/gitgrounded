@@ -15,6 +15,8 @@ EXPECT = {
     "same": "PASS",
     "test/safe-wording-tweak": "PASS",
     "test/drop-citation-rule": "FAIL",
+    "test/drop-policy-field": "FAIL",
+    "test/remove-grounding": "FAIL",
     "test/model-downgrade": "FAIL",
 }
 

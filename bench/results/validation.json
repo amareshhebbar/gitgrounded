@@ -1,0 +1,75 @@
+{
+  "stats": {
+    "same": {
+      "expected": "PASS",
+      "runs": 1,
+      "matched": 1,
+      "rate": 1.0,
+      "low": 0.20654329147389294,
+      "high": 1.0
+    },
+    "test/safe-wording-tweak": {
+      "expected": "PASS",
+      "runs": 1,
+      "matched": 0,
+      "rate": 0.0,
+      "low": 0.0,
+      "high": 0.7934567085261071
+    },
+    "test/drop-citation-rule": {
+      "expected": "FAIL",
+      "runs": 1,
+      "matched": 0,
+      "rate": 0.0,
+      "low": 0.0,
+      "high": 0.7934567085261071
+    },
+    "test/model-downgrade": {
+      "expected": "FAIL",
+      "runs": 1,
+      "matched": 0,
+      "rate": 0.0,
+      "low": 0.0,
+      "high": 0.7934567085261071
+    }
+  },
+  "rows": [
+    {
+      "head": "same",
+      "verdict": "PASS",
+      "usd": 0.042747,
+      "regressions": 0,
+      "unstable": 0,
+      "seconds": 27.1,
+      "rep": 0
+    },
+    {
+      "head": "test/safe-wording-tweak",
+      "verdict": "WARN",
+      "usd": 0.070191,
+      "regressions": 0,
+      "unstable": 0,
+      "seconds": 34.8,
+      "rep": 0
+    },
+    {
+      "head": "test/drop-citation-rule",
+      "verdict": "WARN",
+      "usd": 0.078825,
+      "regressions": 0,
+      "unstable": 0,
+      "seconds": 45.3,
+      "rep": 0
+    },
+    {
+      "head": "test/model-downgrade",
+      "verdict": "WARN",
+      "usd": 0.098976,
+      "regressions": 0,
+      "unstable": 0,
+      "seconds": 27.4,
+      "rep": 0
+    }
+  ],
+  "offline": false
+}
