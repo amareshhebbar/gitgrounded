@@ -968,7 +968,7 @@ report.html
 
 ### 5.5 GitHub artifact attestation
 
-* **How:** in the Action, `actions/attest@v2` with `subject-path: run.ggb`, `predicate-type: https://gitgrounded.dev/attestation/eval-run/v1`, `predicate-path: manifest.json`. Requires `attestations: write`.
+* **How:** in the Action, `actions/attest@v2` with `subject-path: run.ggb`, `predicate-type: https://amareshhebbar.github.io/gitgrounded/attestation/eval-run/v1`, `predicate-path: manifest.json`. Requires `attestations: write`.
 * **Why:** gives a second, GitHub native verification path (`gh attestation verify run.ggb --repo owner/repo`) that buyers already trust from supply chain security.
 
 ### 5.6 Local signing

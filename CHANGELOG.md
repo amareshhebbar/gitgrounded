@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project intends to follow [Semantic Versioning](https://semver.org/).
 
 
+## [0.2.1] hardening
+
+### Security
+
+* GitHub Action: inputs no longer interpolated into shell scripts (script injection fix), inputs validated, third party actions pinned to commit SHAs, fork pull requests handled without secrets, sticky comment lookup paginated.
+* All workflows: least privilege permissions, no persisted checkout credentials.
+* Certifier: connections to private, loopback, link local and carrier grade NAT addresses are refused at connect time, redirects are never followed, jobs are rate limited per token.
+* Attestation predicate type moved to a URI under the project's GitHub Pages site.
+
+### Added
+
+* `gitgrounded init` detects the provider from your environment (or `--provider`) and offers to initialize git (`--yes`, `--no-git`).
+* `gitgrounded verify --require-signature` exits 3 for intact but unsigned bundles.
+* Offline runs print a simulation banner, and verify flags bundles produced offline.
+* Unknown model prices: cost shows as unknown, budgets refuse to run without a price unless `GITGROUNDED_ALLOW_UNKNOWN_COST=1`; `GITGROUNDED_PRICES` overrides prices; `doctor` warns when the price table is older than 60 days.
+* Offline mock target obeys word limits in the prompt and the mock judge scores helpfulness separately.
+
+### Changed
+
+* Internal planning notes moved to `docs/internal/`.
+* Previously silent exceptions in framework adapters and assertion plugin loading are now logged.
+
 ## Unreleased (v5)
 
 * Real LangGraph, Strands, A2A (1.0 and 0.3) and ADK examples with tests

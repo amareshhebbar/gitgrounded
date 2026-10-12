@@ -124,7 +124,11 @@ def render_run(result: RunResult, console: Console | None = None, top: int = 5) 
         console.print("gates fired: " + escape(", ".join(f"[{g['level']}] {g['expr']}" for g in fired)))
     cost = result.cost.get("run_usd")
     if cost is not None:
-        console.print(f"run cost: ${cost:.4f}")
+        unpriced = (result.usage or {}).get("unpriced_models") or []
+        if unpriced:
+            console.print(f"run cost: unknown, no price for {escape(', '.join(unpriced))}")
+        else:
+            console.print(f"run cost: ${cost:.4f}")
 
 
 def render_rank(rows: list[dict], console: Console | None = None) -> None:

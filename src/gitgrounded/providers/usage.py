@@ -1,9 +1,10 @@
+import os
 import threading
 from collections import defaultdict
 from typing import Any
 
 from gitgrounded.errors import BudgetExceeded
-from gitgrounded.stats.cost import tokens_cost
+from gitgrounded.stats.cost import env_price_overrides, has_price, tokens_cost
 
 
 class UsageTracker:
@@ -17,7 +18,7 @@ class UsageTracker:
 
     def configure(self, prices: dict[str, list[float]], budget_usd: float | None) -> None:
         with self._lock:
-            self.prices = dict(prices or {})
+            self.prices = {**dict(prices or {}), **env_price_overrides()}
             self.budget_usd = budget_usd
 
     def record(self, model: str, input_tokens: int, output_tokens: int) -> None:
@@ -33,14 +34,34 @@ class UsageTracker:
                 tokens_cost(k, v["input_tokens"], v["output_tokens"], self.prices) for k, v in self.by_model.items()
             )
 
+    def unpriced_models(self) -> list[str]:
+        with self._lock:
+            return sorted(
+                k
+                for k, v in self.by_model.items()
+                if k != "mock" and (v["input_tokens"] or v["output_tokens"]) and not has_price(k, self.prices)
+            )
+
     def check(self) -> None:
+        if self.budget_usd is not None and os.environ.get("GITGROUNDED_ALLOW_UNKNOWN_COST", "") != "1":
+            unknown = self.unpriced_models()
+            if unknown:
+                raise BudgetExceeded(
+                    f"cannot enforce the budget: no price known for {', '.join(unknown)}. "
+                    "Add it to prices in gitgrounded.yml, set GITGROUNDED_PRICES, or set GITGROUNDED_ALLOW_UNKNOWN_COST=1"
+                )
         if self.budget_usd is not None and self.cost() > self.budget_usd:
             raise BudgetExceeded(f"budget of ${self.budget_usd:.2f} exceeded (spent ${self.cost():.4f})")
 
     def snapshot(self) -> dict[str, Any]:
         with self._lock:
             models = {k: dict(v) for k, v in self.by_model.items()}
-        return {"models": models, "cost_usd": round(self.cost(), 6), "budget_usd": self.budget_usd}
+        return {
+            "models": models,
+            "cost_usd": round(self.cost(), 6),
+            "budget_usd": self.budget_usd,
+            "unpriced_models": self.unpriced_models(),
+        }
 
     def reset(self) -> None:
         with self._lock:

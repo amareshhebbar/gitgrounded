@@ -1,5 +1,6 @@
 import importlib
 import json
+import logging
 import re
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
@@ -239,7 +240,10 @@ def _load_plugins() -> None:
         if ep.name not in REGISTRY:
             try:
                 REGISTRY[ep.name] = ep.load()
-            except Exception:
+            except Exception as e:
+                logging.getLogger("gitgrounded.assertions").warning(
+                    "could not load assertion plugin %s: %s", ep.name, e
+                )
                 continue
 
 

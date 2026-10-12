@@ -2,9 +2,8 @@ import time
 import uuid
 from typing import Any
 
-import requests
-
 from gitgrounded.cases.model import Case
+from gitgrounded.net import new_session
 from gitgrounded.sources.variant import Variant
 from gitgrounded.targets.base import Target, Transcript, check_url, error_transcript
 
@@ -54,7 +53,7 @@ class A2ATarget(Target):
     def __init__(self, name: str, cfg):
         self.name = name
         self.cfg = cfg
-        self.session = requests.Session()
+        self.session = new_session()
         self.version: str | None = None if cfg.protocol == "auto" else cfg.protocol
 
     def describe(self) -> dict[str, Any]:

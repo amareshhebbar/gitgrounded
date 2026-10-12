@@ -1,6 +1,7 @@
 import asyncio
 import inspect
 import json
+import logging
 import uuid
 from typing import Any
 
@@ -18,6 +19,9 @@ KINDS = [
     "dspy",
     "generic",
 ]
+
+
+log = logging.getLogger("gitgrounded.frameworks")
 
 
 def _await(value: Any) -> Any:
@@ -179,8 +183,8 @@ def run_strands(obj, case_input, options):
     if hasattr(obj, "messages") and options.get("reset", True):
         try:
             obj.messages = []
-        except Exception:
-            pass
+        except Exception as e:
+            log.debug("could not reset agent messages: %s", e)
     res = None
     for m in _messages(case_input):
         if m["role"] == "user":
@@ -264,8 +268,8 @@ def run_pydantic_ai(obj, case_input, options):
                         except ValueError:
                             args = {"raw": args}
                     calls.append({"name": _get(part, "tool_name", ""), "arguments": args})
-    except Exception:
-        pass
+    except Exception as e:
+        log.debug("could not extract tool calls from result: %s", e)
     usage = {}
     try:
         u = res.usage()
@@ -273,8 +277,8 @@ def run_pydantic_ai(obj, case_input, options):
             "input_tokens": int(_get(u, "input_tokens", 0) or _get(u, "request_tokens", 0) or 0),
             "output_tokens": int(_get(u, "output_tokens", 0) or _get(u, "response_tokens", 0) or 0),
         }
-    except Exception:
-        pass
+    except Exception as e:
+        log.debug("could not read token usage from result: %s", e)
     return _out(output if isinstance(output, str) else json.dumps(output, default=str), calls, usage)
 
 
