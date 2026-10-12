@@ -9,6 +9,7 @@ from rich.console import Console
 from rich.markup import escape
 
 from gitgrounded import __version__
+from gitgrounded.cli.versioninfo import VersionAction
 from gitgrounded.errors import GitGroundedError
 
 console = Console(stderr=False)
@@ -1069,7 +1070,7 @@ def build_parser() -> argparse.ArgumentParser:
         prog="gitgrounded",
         description="Auto generated benchmarks, change targeted regression tests and signed evidence for LLM apps",
     )
-    parser.add_argument("--version", action="version", version=f"gitgrounded {__version__}")
+    parser.add_argument("--version", "-v", "-V", action=VersionAction, help="show installed version and check PyPI for a newer one")
     sub = parser.add_subparsers(dest="command", required=True)
 
     p = sub.add_parser("init", help="create gitgrounded.yml and a starter cases file")

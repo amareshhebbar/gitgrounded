@@ -39,6 +39,7 @@ classifiers = [
 dependencies = [
   "PyYAML>=6.0",
   "requests>=2.31",
+  "packaging>=23",
   "openai>=1.40",
   "anthropic>=0.40",
   "python-dotenv>=1.0",
