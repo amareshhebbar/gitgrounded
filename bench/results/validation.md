@@ -1,12 +1,14 @@
 # Validation results
 
-created 2026-10-12T07:03:55Z, repetitions 1
+created 2026-10-12T08:14:20Z, repetitions 3
 
 | comparison | expected | runs | matched | rate | 95% interval |
 |---|---|---|---|---|---|
-| same | PASS | 1 | 1 | 100% | 21% to 100% |
-| test/safe-wording-tweak | PASS | 1 | 0 | 0% | 0% to 79% |
-| test/drop-citation-rule | FAIL | 1 | 0 | 0% | 0% to 79% |
-| test/model-downgrade | FAIL | 1 | 0 | 0% | 0% to 79% |
+| same | PASS | 2 | 2 | 100% | 34% to 100% |
+| test/safe-wording-tweak | PASS | 0 | 0 | 0% | 0% to 100% |
+| test/drop-citation-rule | FAIL | 0 | 0 | 0% | 0% to 100% |
+| test/drop-policy-field | FAIL | 0 | 0 | 0% | 0% to 100% |
+| test/remove-grounding | FAIL | 0 | 0 | 0% | 0% to 100% |
+| test/model-downgrade | FAIL | 0 | 0 | 0% | 0% to 100% |
 
-total spend USD 0.29, runs with errors 0
+total spend USD 0.00, runs with errors 16

@@ -8,6 +8,8 @@ from gitgrounded.providers.base import BaseProvider, Completion
 
 log = logging.getLogger("gitgrounded.anthropic")
 
+_WARNED = False
+
 JSON_SUFFIX = "\n\nRespond with one valid JSON object only. No markdown fences, no preamble."
 
 
@@ -30,7 +32,9 @@ class AnthropicProvider(BaseProvider):
             kwargs["base_url"] = base_url
         self.client = Anthropic(**kwargs)
         self.temperature_supported = _accepts(self.client.messages.create, "temperature")
-        if not self.temperature_supported:
+        global _WARNED
+        if not self.temperature_supported and not _WARNED:
+            _WARNED = True
             log.warning(
                 "the installed anthropic SDK does not accept temperature; requests are sent without it, "
                 "so judge determinism relies on the response cache and order swapped pairwise judging"
