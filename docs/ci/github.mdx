@@ -1,0 +1,106 @@
+---
+title: "GitHub Action"
+description: "Run the suite on every pull request, sign the bundle with your workflow identity, attest it and keep one updated comment."
+icon: "github"
+---
+
+```yaml .github/workflows/gitgrounded.yml
+name: GitGrounded
+on: pull_request
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+  attestations: write
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: amareshhebbar/gitgrounded/action@main
+        with:
+          suite: core
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+```
+
+The action installs `gitgrounded[sign]`, restores the response cache, runs the suite against the pull request base, signs the bundle with Sigstore, creates an artifact attestation, uploads the report and bundle, keeps one sticky comment on the pull request, and fails the job according to `fail-on`.
+
+<Warning>
+`fetch-depth: 0` is required so the base ref can be resolved. On a shallow checkout the action warns and tries to unshallow.
+</Warning>
+
+## Permissions
+
+| Permission | Why |
+|---|---|
+| `contents: read` | check out the code |
+| `pull-requests: write` | post and update the sticky comment |
+| `id-token: write` | Sigstore keyless signing bound to the workflow identity |
+| `attestations: write` | create the GitHub artifact attestation |
+
+## Inputs
+
+| Input | Default | Meaning |
+|---|---|---|
+| `suite` | first suite | suite name from `gitgrounded.yml` |
+| `base` | `origin/<base branch>` on pull requests, else `HEAD~1` | baseline ref |
+| `head` | `HEAD` | candidate ref |
+| `working-directory` | `.` | directory with `gitgrounded.yml` |
+| `version` | latest | gitgrounded version to install; `local` installs from the checked out repo |
+| `python-version` | `3.12` | Python version |
+| `sign` | `auto` | `auto`, `sigstore`, `local` or `none` |
+| `attest` | `true` | create a GitHub artifact attestation |
+| `comment` | `true` | post or update one sticky comment |
+| `comment-footer` | `true` | add a short "checked by GitGrounded" footer |
+| `fail-on` | `fail` | `fail`, `warn` or `never` |
+| `quick` | `false` | run the quick subset |
+| `minimal` | `false` | use the mutation minimized suite |
+| `offline-fallback` | `true` | run offline instead of failing when no provider key is available |
+| `extra-args` | empty | extra arguments for `gitgrounded run` |
+
+## Outputs
+
+| Output | Meaning |
+|---|---|
+| `verdict` | `PASS`, `WARN` or `FAIL` |
+| `bundle` | path to the evidence bundle |
+| `exit-code` | gitgrounded exit code |
+| `offline` | `true` when the run used offline simulation |
+
+```yaml
+      - uses: amareshhebbar/gitgrounded/action@main
+        id: gg
+        with:
+          fail-on: never
+      - run: echo "verdict ${{ steps.gg.outputs.verdict }}"
+```
+
+## Pull requests from forks
+
+Forks do not receive secrets. With `offline-fallback: true` the action runs offline instead of failing, signs locally instead of with Sigstore, skips the attestation and the comment, and marks the summary as illustrative. Maintainers can rerun with real keys on a trusted branch.
+
+## Artifacts
+
+Each run uploads `gitgrounded-<run id>-<attempt>` containing `evidence.ggb`, `manifest.json`, `report.html`, `summary.md`, `junit.xml` and `result.json`.
+
+## Verify a CI bundle
+
+```bash
+gh attestation verify evidence.ggb --repo OWNER/REPO
+gitgrounded verify evidence.ggb --identity https://github.com/OWNER/REPO/.github/workflows/gitgrounded.yml@refs/heads/main
+```
+
+The attestation predicate is described in [Attestation format](/docs/attestation/eval-run/index).
+
+## Pin the action
+
+For supply chain safety, pin to a release tag or commit SHA instead of `@main`, and set `version` to the matching package release.
+
+```yaml
+      - uses: amareshhebbar/gitgrounded/action@v0.2.1
+        with:
+          version: "0.2.1"
+```

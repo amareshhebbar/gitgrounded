@@ -1,0 +1,140 @@
+---
+title: "CLI reference"
+description: "Every gitgrounded command, its flags and its exit codes."
+icon: "terminal"
+---
+
+```bash
+gitgrounded --help
+gitgrounded run --help
+```
+
+## Common flags
+
+Most commands accept these.
+
+| Flag | Meaning |
+|---|---|
+| `--config PATH` | path to `gitgrounded.yml` (default: search upward from the current directory) |
+| `--verbose`, `-v` | more detail |
+| `--format terminal\|json\|markdown` | stdout format |
+
+Commands that run cases (`run`, `compare`, `benchmark`, `check`, `rank`) also accept:
+
+| Flag | Meaning |
+|---|---|
+| `--suite NAME` | suite to run (default: the first one) |
+| `--trials N` | repetitions per case and version |
+| `--quick` | at most 6 cases, prioritizing those related to the change |
+| `--max-cases N` | cap the number of cases |
+| `--case IDS` | comma separated case ids |
+| `--no-generate` | skip diff targeted case generation |
+| `--budget-usd X` | abort once spend exceeds X dollars |
+| `--concurrency N` | parallel calls |
+| `--fail-on fail\|warn\|never` | which verdict gives a nonzero exit code (default `fail`) |
+| `--html PATH`, `--markdown PATH`, `--junit PATH`, `--json-out PATH` | write reports |
+| `--bundle [PATH]` | write a signed evidence bundle |
+| `--sign auto\|sigstore\|local\|none` | signing mode |
+| `--open` | open the HTML report |
+
+## Commands
+
+<ResponseField name="init" type="setup">
+  Create `gitgrounded.yml`, `gitgrounded.cases.jsonl` and `prompts/system.txt`.
+
+  `--provider anthropic|openai|groq|deepseek|ollama`, `--force`, `--yes` (initialize git without asking), `--no-git`.
+</ResponseField>
+
+<ResponseField name="doctor" type="setup">
+  Show configured providers and roles. `--ping` sends one request to each.
+</ResponseField>
+
+<ResponseField name="run" type="compare">
+  Compare two git refs. `--base REF` (default `HEAD`), `--head REF` (default `@worktree`), `--minimal`, `--certify`, `--out PATH`.
+</ResponseField>
+
+<ResponseField name="rank" type="compare">
+  Rank several candidate refs against one base. `--base REF` (required), then one or more candidate refs.
+</ResponseField>
+
+<ResponseField name="compare" type="compare">
+  Compare prompts across models on a locked AI generated question set. `--prompt` (required, repeat), `--model` (repeat or comma separate), `--context`, `--baseline N`, `--budget-cases N` (default 40), `--regenerate`, `--json-mode`, `--certify`, `--out`.
+</ResponseField>
+
+<ResponseField name="benchmark" type="compare">
+  Benchmark targets on one locked question set. `--target` (repeat; default all), `--spec`, `--context`, `--baseline N`, `--budget-cases N`, `--regenerate`, `--certify`, `--out`.
+</ResponseField>
+
+<ResponseField name="check" type="monitor">
+  Check live HTTP endpoints against their stored history. Optional `TARGET`, `--url`, `--output JSONPATH`, `--label`, `--cases FILE`.
+</ResponseField>
+
+<ResponseField name="history" type="monitor">
+  `history list`, `history LABEL [--rank]`, `history delete LABEL [--version N]`, `history delete --all`, `history import DIR`.
+</ResponseField>
+
+<ResponseField name="discover" type="coverage">
+  Extract behaviors and dimensions from the suite sources. `--suite`.
+</ResponseField>
+
+<ResponseField name="synth" type="coverage">
+  Generate or update the benchmark suite. `--suite`, `--full`, `--no-logs`, `--concurrency`, `--budget-usd`.
+</ResponseField>
+
+<ResponseField name="mutate" type="coverage">
+  Measure suite strength with prompt mutants. `--suite`, `--ref` (default `@worktree`), `--no-repair`, `--max-mutants N`, `--fail-on target|never` (default `never`), `--concurrency`, `--budget-usd`.
+</ResponseField>
+
+<ResponseField name="suite" type="coverage">
+  `suite review` (local web UI; `--port` default 8799, `--no-browser`, `--all`), `suite coverage` (`--html`, `--open`), `suite show`, `suite import --file FILE [--out PATH]`. All take `--suite`.
+</ResponseField>
+
+<ResponseField name="report" type="evidence">
+  Render a stored run. Optional `RESULT` (a `result.json`, a run directory or `latest`), `--format terminal|html|markdown|junit|json`, `--out`, `--open`.
+</ResponseField>
+
+<ResponseField name="bundle" type="evidence">
+  Build an evidence bundle for a stored run. Optional `RESULT`, `--out`, `--sign`.
+</ResponseField>
+
+<ResponseField name="verify" type="evidence">
+  Verify a `.ggb` bundle. `--identity`, `--issuer` (default the GitHub Actions OIDC issuer), `--public-key`, `--require-signature`, `--format terminal|json`.
+</ResponseField>
+
+<ResponseField name="certifier" type="evidence">
+  `certifier serve` runs an independent certification service; `certifier pubkey` prints its key. `--host`, `--port` (8765), `--home`, `--key`, `--name`, `--public-url`, `--max-cases` (200), `--allow-private`.
+</ResponseField>
+
+<ResponseField name="certify-remote" type="evidence">
+  Have a certifier benchmark and sign a remote target. `--service` and `--target` (required), `--spec`, `--context`, `--budget-cases`, `--name`, `--token`, `--expect-key`, `--timeout`, `--out`.
+</ResponseField>
+
+<ResponseField name="calibrate" type="judges">
+  Measure judge agreement with human labels. `--labels FILE` (required), `--rubric` (default `grounded_answer`), `--threshold` (default 6).
+</ResponseField>
+
+<ResponseField name="mcp" type="mcp">
+  `mcp diff` (`--base`, `--head`, `--target`, `--old-file`, `--new-file`, `--threshold` default 0.85, `--fail-on breaking|risky|never`) and `mcp serve` (`--project-dir`).
+</ResponseField>
+
+<ResponseField name="cache" type="maintenance">
+  `cache clear` removes cached model responses.
+</ResponseField>
+
+<ResponseField name="schema" type="maintenance">
+  Print the JSON schema of `gitgrounded.yml`.
+</ResponseField>
+
+## Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | success, or a verdict allowed by `--fail-on` |
+| `1` | the verdict failed the `--fail-on` rule, verification failed, a certificate was refused, or `mutate --fail-on target` missed the target |
+| `2` | configuration or usage error |
+| `3` | `verify --require-signature` on an intact but unsigned bundle |
+| `130` | interrupted |
+
+## Removed flags
+
+The hackathon flags `--old`, `--new`, `--check`, `--compare`, `--labels` (top level) and `--del-v` were removed in 0.2. Using them prints the replacement command.

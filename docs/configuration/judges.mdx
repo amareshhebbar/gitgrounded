@@ -1,0 +1,100 @@
+---
+title: "Judges"
+description: "Rubric judges, the pairwise judge, judge panels, trap answers and calibration against human labels."
+icon: "gavel"
+---
+
+Judges run after assertions. Each suite defaults to one rubric judge with `grounded_answer` and one pairwise judge.
+
+```yaml gitgrounded.yml
+suites:
+  core:
+    target: app
+    judges:
+      - {type: rubric, rubric: grounded_answer}
+      - {type: rubric, rubric: instruction_following, provider: {provider: openai, model: gpt-4.1}}
+      - {type: pairwise, swap: true}
+```
+
+| Key | Default | Meaning |
+|---|---|---|
+| `type` | required | `rubric` or `pairwise` |
+| `rubric` | `grounded_answer` | built in rubric name or path to a YAML file |
+| `provider` | `providers.judge` | override the judge model for this judge |
+| `swap` | `true` | pairwise only: judge both orders |
+
+## Rubric judges
+
+A rubric judge scores one output from 0 to 10 on each rubric dimension. The case score is the mean across rubric judges and becomes the `score` metric.
+
+| Rubric | Checks |
+|---|---|
+| `grounded_answer` | correct, grounded in the context, satisfies the case expectations |
+| `instruction_following` | follows the system instructions and the case expectations exactly |
+| `helpfulness` | general quality for the user |
+| `safety_refusal` | refuses exactly when it should and complies otherwise |
+| `format` | well formed and in the required format |
+| `tool_use` | right tool, valid arguments, result used correctly |
+
+### Custom rubric
+
+```yaml rubrics/tone.yaml
+name: tone
+description: Does the answer match the brand voice?
+show: [context, expectations]
+dimensions:
+  - name: warmth
+    description: Friendly and respectful without being casual.
+    anchors:
+      0: Cold, curt or rude.
+      5: Neutral and correct.
+      10: Warm, respectful and on brand.
+  - name: brevity
+    description: Says what is needed and nothing more.
+    anchors:
+      0: Rambling or padded.
+      10: Tight and complete.
+```
+
+```yaml
+judges:
+  - {type: rubric, rubric: rubrics/tone.yaml}
+```
+
+`show` controls what the judge sees besides the input and output: `context`, `reference`, `expectations`. The rubric hash is part of the judge cache key, so editing a rubric judges every output again.
+
+## Pairwise judge
+
+The pairwise judge sees the base and head outputs side by side and picks the better one. With `swap: true` it is asked twice with the order reversed. If the two answers disagree, the comparison counts as a tie and the inconsistency is reported as `position_consistency`. Pairwise preference feeds the case status (see [Core concepts](/docs/concepts#case-statuses)) and the `pairwise` metrics in gates.
+
+## Judge panels
+
+```yaml
+providers:
+  panel:
+    - {provider: openai, model: gpt-4.1}
+    - {provider: deepseek, model: deepseek-flash}
+```
+
+or `GITGROUNDED_PANEL=openai:gpt-4.1,deepseek`. With two or more judges, GitGrounded reports Krippendorff's alpha across them under `reliability.krippendorff_alpha` so you can see whether the judges agree.
+
+## Judge traps
+
+With `--certify`, before any certificate is issued the judge grades trap answers whose correct grade is known: an empty answer, an off topic answer and an ideal answer. If its accuracy is below `evidence.certify.trap_threshold` (default 0.9) the run is not certified. The traps are stored in `traps.jsonl` inside the certificate bundle.
+
+## Calibrate against humans
+
+```bash
+gitgrounded calibrate --labels labels.jsonl
+gitgrounded calibrate --labels labels.jsonl --rubric instruction_following --threshold 7
+```
+
+```json labels.jsonl
+{"input": "Can I return a used item?", "output": "Yes, within 30 days with a receipt.", "expectations": [{"kind": "must", "text": "states the return window"}], "score": 8, "pass": true}
+```
+
+Each row needs `input`, `output`, and a human `score` (0 to 10) and/or `pass`; `expectations`, `context` and `id` are optional. GitGrounded reports Spearman correlation between human and judge scores, Cohen's kappa and raw agreement on pass or fail (judge pass means score at least `--threshold`, default 6), and saves `calibration.json` in the state directory. Certificates show the agreement when it exists.
+
+<Tip>
+Report calibration before relying on judge based gates. A judge that disagrees with people should not block pull requests.
+</Tip>

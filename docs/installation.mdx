@@ -1,0 +1,70 @@
+---
+title: "Installation"
+description: "Install the gitgrounded package, pick extras, and check your setup."
+icon: "download"
+---
+
+GitGrounded needs Python 3.11 or newer and `git` on your path.
+
+<CodeGroup>
+```bash Recommended
+pip install "gitgrounded[sign]"
+```
+
+```bash Everything
+pip install "gitgrounded[all]"
+```
+
+```bash uv
+uv tool install "gitgrounded[sign]"
+```
+
+```bash Docker
+docker build -t gitgrounded https://github.com/amareshhebbar/gitgrounded.git
+```
+</CodeGroup>
+
+## Extras
+
+| Extra | Adds | Needed for |
+|---|---|---|
+| `sign` | `cryptography`, `sigstore` | Ed25519 and Sigstore signing of evidence bundles |
+| `mcp` | `mcp` | MCP targets over stdio or HTTP, `gitgrounded mcp serve` |
+| `coverage` | `sentence-transformers` | local embeddings for behavior merging and diversity selection |
+| `pdf` | `fpdf2`, `segno` | `certificate.pdf` with a QR code inside certificate bundles |
+| `server` | `Flask` | the local example chatbots in `examples/endpoint_bots` |
+| `all` | all of the above | a full local install |
+| `dev` | `pytest`, `ruff`, `hypothesis`, `build`, `twine` | contributing |
+
+Without `coverage`, embeddings fall back to a fast hashing embedder, which is deterministic and needs no download.
+
+## Check the install
+
+```bash
+gitgrounded --version
+gitgrounded doctor
+gitgrounded doctor --ping
+```
+
+`--version` also checks PyPI for a newer release; set `GITGROUNDED_NO_UPDATE_CHECK=1` to skip it. `doctor` lists the configured providers and which role each one plays; `--ping` sends one request to each provider.
+
+## Try it without keys
+
+```bash
+export GITGROUNDED_OFFLINE=1
+```
+
+Every model call then runs on a deterministic offline provider. Use it to learn the workflow and to test your configuration in CI on pull requests from forks.
+
+<Warning>
+Offline numbers are illustrative. Offline runs print a simulation banner, are never certified, and `gitgrounded verify` flags bundles produced offline.
+</Warning>
+
+## Install from source
+
+```bash
+git clone https://github.com/amareshhebbar/gitgrounded
+cd gitgrounded
+pip install -e ".[dev,mcp]"
+GITGROUNDED_OFFLINE=1 pytest -q
+```

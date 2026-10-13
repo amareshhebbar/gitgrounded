@@ -2,43 +2,190 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
   "name": "GitGrounded",
-  "description": "Auto generated benchmarks, prompt and model comparison, framework benchmarks and signed certificates for LLM apps",
+  "description": "Regression tests and benchmarks for LLM apps that write themselves: auto generated suites, prompt and model comparison, framework benchmarks and signed, verifiable certificates.",
   "colors": {
     "primary": "#16A34A",
     "light": "#4ADE80",
     "dark": "#15803D"
   },
+  "favicon": "/docs/images/favicon.svg",
+  "logo": {
+    "light": "/docs/images/logo-light.svg",
+    "dark": "/docs/images/logo-dark.svg",
+    "href": "/docs/introduction"
+  },
+  "appearance": {
+    "default": "system"
+  },
+  "icons": {
+    "library": "fontawesome"
+  },
   "navigation": {
-    "groups": [
+    "tabs": [
       {
-        "group": "Get started",
-        "pages": [
-          "docs/index"
+        "tab": "Documentation",
+        "icon": "book-open",
+        "groups": [
+          {
+            "group": "Get started",
+            "pages": [
+              "docs/introduction",
+              "docs/quickstart",
+              "docs/installation",
+              "docs/concepts"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "docs/regression",
+              "docs/compare",
+              "docs/frameworks",
+              "docs/coverage",
+              "docs/endpoints",
+              "docs/mcp"
+            ]
+          },
+          {
+            "group": "Evidence and certificates",
+            "pages": [
+              "docs/evidence",
+              "docs/certifier",
+              "docs/attestation/eval-run/index"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "docs/configuration/overview",
+              "docs/configuration/providers",
+              "docs/configuration/targets",
+              "docs/configuration/assertions",
+              "docs/configuration/judges",
+              "docs/configuration/gates"
+            ]
+          },
+          {
+            "group": "CI and automation",
+            "pages": [
+              "docs/ci/github",
+              "docs/ci/gitlab",
+              "docs/ci/precommit",
+              "docs/ci/docker"
+            ]
+          }
         ]
       },
       {
-        "group": "Guides",
-        "pages": [
-          "docs/compare",
-          "docs/frameworks",
-          "docs/coverage",
-          "docs/evidence",
-          "docs/stability"
+        "tab": "Reference",
+        "icon": "terminal",
+        "groups": [
+          {
+            "group": "Reference",
+            "pages": [
+              "docs/reference/cli",
+              "docs/reference/cases",
+              "docs/reference/environment"
+            ]
+          },
+          {
+            "group": "Project",
+            "pages": [
+              "docs/validation",
+              "docs/stability",
+              "docs/troubleshooting",
+              "docs/changelog"
+            ]
+          }
         ]
       }
-    ]
+    ],
+    "global": {
+      "anchors": [
+        {
+          "anchor": "GitHub",
+          "icon": "github",
+          "href": "https://github.com/amareshhebbar/gitgrounded"
+        },
+        {
+          "anchor": "PyPI",
+          "icon": "python",
+          "href": "https://pypi.org/project/gitgrounded/"
+        },
+        {
+          "anchor": "Browser verifier",
+          "icon": "shield-check",
+          "href": "https://amareshhebbar.github.io/gitgrounded/verify/"
+        }
+      ]
+    }
   },
   "navbar": {
     "links": [
       {
-        "label": "GitHub",
-        "href": "https://github.com/amareshhebbar/gitgrounded"
+        "label": "Changelog",
+        "href": "/docs/changelog"
+      },
+      {
+        "label": "Issues",
+        "href": "https://github.com/amareshhebbar/gitgrounded/issues"
       }
+    ],
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/amareshhebbar/gitgrounded"
+    }
+  },
+  "contextual": {
+    "options": [
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "perplexity",
+      "mcp",
+      "cursor",
+      "vscode"
     ]
   },
+  "search": {
+    "prompt": "Search commands, config keys and guides"
+  },
+  "seo": {
+    "indexing": "navigable",
+    "metatags": {
+      "og:site_name": "GitGrounded",
+      "keywords": "llm evaluation, regression testing, prompt testing, model comparison, mcp, sigstore, mutation testing, benchmarks"
+    }
+  },
+  "redirects": [
+    {
+      "source": "/docs/index",
+      "destination": "/docs/introduction"
+    }
+  ],
   "footer": {
     "socials": {
       "github": "https://github.com/amareshhebbar/gitgrounded"
-    }
+    },
+    "links": [
+      {
+        "header": "Project",
+        "items": [
+          {
+            "label": "Roadmap",
+            "href": "https://github.com/amareshhebbar/gitgrounded/blob/main/docs/ROADMAP.md"
+          },
+          {
+            "label": "Contributing",
+            "href": "https://github.com/amareshhebbar/gitgrounded/blob/main/CONTRIBUTING.md"
+          },
+          {
+            "label": "Security",
+            "href": "https://github.com/amareshhebbar/gitgrounded/blob/main/SECURITY.md"
+          }
+        ]
+      }
+    ]
   }
 }

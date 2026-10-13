@@ -1,0 +1,92 @@
+---
+title: "Monitor live endpoints"
+description: "Check deployed HTTP chat APIs against their own stored history, without git."
+icon: "satellite-dish"
+---
+
+Some apps are not in your repository: a deployed chatbot, a vendor API, a staging endpoint. `gitgrounded check` calls the live endpoint, stores the answers as a versioned snapshot, and compares each new snapshot with the previous one using the same assertions, judges and gates as a git run.
+
+## Ad hoc check
+
+```bash
+gitgrounded check --url https://api.example.com/chat --output $.answer --cases cases.jsonl
+```
+
+The request body is `{"message": "<case input>"}`. `--output` is the JSONPath of the answer in the response. The first check stores a baseline; every later check compares against the latest stored version.
+
+## Configured targets
+
+```yaml gitgrounded.yml
+targets:
+  support_bot:
+    type: http
+    url: https://api.example.com/chat
+    headers: {Authorization: "Bearer ${API_TOKEN}"}
+    body: {message: "{{input}}"}
+    output: $.reply.text
+
+suites:
+  support:
+    target: support_bot
+    cases: cases.jsonl
+    generate:
+      enabled: false
+```
+
+```bash
+gitgrounded check
+gitgrounded check support_bot
+gitgrounded check support_bot --label production --fail-on warn
+```
+
+Without arguments every suite whose target has `type: http` is checked.
+
+| Flag | Meaning |
+|---|---|
+| `TARGET` | target name from `gitgrounded.yml` |
+| `--url` | ad hoc endpoint, needs `--cases` |
+| `--output` | JSONPath of the answer, for `--url` |
+| `--label` | history label (default: target name or URL) |
+| `--cases` | cases file, JSONL or a JSON list of `{"input": ...}` |
+
+All [run flags](/docs/regression#useful-flags) such as `--trials`, `--bundle` and `--fail-on` apply too.
+
+## History
+
+```bash
+gitgrounded history list
+gitgrounded history support_bot
+gitgrounded history support_bot --rank
+gitgrounded history delete support_bot --version 3
+gitgrounded history delete --all
+gitgrounded history import .versions
+```
+
+| Command | Effect |
+|---|---|
+| `history list` | every label with its latest version |
+| `history LABEL` | each version with its date, verdict against the previous version and case count |
+| `history LABEL --rank` | also print the latest version that did not regress |
+| `history delete LABEL [--version N]` | delete one version or the whole label |
+| `history delete --all` | delete every label |
+| `history import DIR` | import a legacy `.versions` folder from the hackathon release |
+
+Snapshots live in `.gitgrounded/history/`.
+
+## Example
+
+`examples/endpoint_bots` runs three local Flask chatbots on port 8765 with different prompts, so you can watch history work end to end. They answer through Groq when `GROQ_API_KEY` is set, and with a deterministic mock when `GITGROUNDED_OFFLINE=1`.
+
+```bash
+pip install "gitgrounded[server]"
+cd examples/endpoint_bots
+export GITGROUNDED_OFFLINE=1
+python chatbots.py &
+gitgrounded check ai-chatbot
+gitgrounded check ai-chatbot
+gitgrounded history ai-chatbot
+```
+
+<Tip>
+Schedule `gitgrounded check --fail-on warn` in CI to catch silent model or prompt changes on a vendor's side.
+</Tip>

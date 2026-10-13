@@ -1,0 +1,102 @@
+---
+title: "Assertions"
+description: "Deterministic checks that run before any judge. A case that newly fails an assertion is a regression."
+icon: "check"
+---
+
+Assertions can be set for a whole suite under `suites.<name>.assertions`, or per case in the case's `assertions` list. Both lists run. Each entry has a `type`, the parameters for that type, and an optional `label` shown in reports.
+
+```yaml gitgrounded.yml
+suites:
+  triage:
+    target: app
+    assertions:
+      - {type: json_schema, schema: schemas/triage.schema.json}
+      - {type: one_of, path: $.priority, values: [P1, P2, P3]}
+      - {type: max_length, path: $.summary, value: 40, unit: words}
+      - {type: not_contains, values: ["as an AI"], label: no_ai_disclaimer}
+```
+
+```json cases.jsonl
+{"id": "refund_1", "input": "I want my money back", "assertions": [{"type": "tool_called", "tool": "lookup_order"}, {"type": "not_refusal"}]}
+```
+
+When a target errors, every assertion is replaced by one failing `no_error` result.
+
+## Text
+
+Text assertions check the whole output, or the values at `path` (a JSONPath) when the output is JSON.
+
+| Type | Parameters | Passes when |
+|---|---|---|
+| `non_empty` | `path` | the output (or value) is not empty or null |
+| `contains` | `value` or `values`, `any`, `case_sensitive`, `path` | every value appears (or any, with `any: true`) |
+| `not_contains` | `value` or `values`, `case_sensitive`, `path` | no value appears |
+| `regex` | `pattern`, `negate`, `case_sensitive`, `path` | the pattern matches (or does not, with `negate: true`) |
+| `max_length` | `value`, `unit` (`chars` or `words`), `path` | length is at most `value` |
+| `refusal` | | the output is a refusal |
+| `not_refusal` | | the output is not a refusal |
+
+Matching is case insensitive unless `case_sensitive: true`.
+
+## JSON
+
+| Type | Parameters | Passes when |
+|---|---|---|
+| `json_valid` | | the output parses as JSON |
+| `json_schema` | `schema` (inline object or file path) | the output validates against the JSON Schema |
+| `jsonpath_exists` | `path` | the path has at least one value |
+| `jsonpath_equals` | `path`, `value` | the first value at the path equals `value` |
+| `one_of` | `path`, `values` | the first value at the path is in `values` |
+
+## Tools and agents
+
+These read the tool calls recorded by framework, agent, MCP, ADK and HTTP targets (with `tool_calls_path`).
+
+| Type | Parameters | Passes when |
+|---|---|---|
+| `tool_called` | `tool` | the tool was called |
+| `tool_not_called` | `tool` | the tool was not called |
+| `tool_call_order` | `tools` | the tools were called in this order, other calls allowed in between |
+| `max_steps` | `value` | at most `value` tool calls |
+
+Generated cases with a `tool_call` expectation get a `tool_called` assertion automatically.
+
+## Performance
+
+| Type | Parameters | Passes when |
+|---|---|---|
+| `latency_ms_below` | `value` | the call took at most `value` milliseconds |
+| `cost_below` | `value`, `prices` | the call cost at most `value` USD |
+| `no_error` | | the target did not raise or return an error |
+
+## Custom python
+
+```yaml
+assertions:
+  - {type: python, function: checks.citations:has_valid_citation, min: 1}
+```
+
+```python checks/citations.py
+import re
+
+
+def has_valid_citation(transcript, case, params):
+    found = re.findall(r"\[policy:(\d+)\]", transcript["raw_output"])
+    if len(found) < params.get("min", 1):
+        return False, f"expected at least {params.get('min', 1)} citations, found {len(found)}"
+    return True, "ok"
+```
+
+The function receives the transcript as a dict (with `output`, `raw_output`, `tool_calls` and usage fields), the case as a dict and the assertion parameters. Return a bool, a `(bool, message)` tuple, or a `gitgrounded.assertions.builtin.AssertionResult`.
+
+## Plugins
+
+Register reusable assertion types through the `gitgrounded.assertions` entry point group in your package's `pyproject.toml`.
+
+```toml pyproject.toml
+[project.entry-points."gitgrounded.assertions"]
+pii_free = "my_checks.pii:check"
+```
+
+The callable receives the `Transcript` object, the parameters dict and the `Case` object, in that order, and returns an `AssertionResult`. Use it as `{type: pii_free}`.

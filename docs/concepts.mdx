@@ -1,0 +1,73 @@
+---
+title: "Core concepts"
+description: "Targets, suites, cases, judges, gates and verdicts, and how a run turns them into PASS, WARN or FAIL."
+icon: "lightbulb"
+---
+
+## The pieces
+
+<AccordionGroup>
+  <Accordion title="Target" icon="bullseye">
+    The thing under test: a Python function, a framework agent, an HTTP API, a system prompt on a provider, an MCP server, an A2A agent or a Google ADK agent. Targets are declared under `targets:` in `gitgrounded.yml`. See [Targets](/docs/configuration/targets).
+  </Accordion>
+  <Accordion title="Suite" icon="layer-group">
+    A named set of cases bound to one target, with its assertions, judges, number of trials and optional automatic coverage settings. Declared under `suites:`.
+  </Accordion>
+  <Accordion title="Case" icon="file-lines">
+    One input (a string or a list of chat messages) plus expectations, optional reference answer, context and assertions. Stored as JSONL. See [Case format](/docs/reference/cases).
+  </Accordion>
+  <Accordion title="Assertion" icon="check">
+    A deterministic check such as `json_schema`, `contains`, `regex`, `tool_called` or `refusal`. A case that newly fails an assertion is a regression. See [Assertions](/docs/configuration/assertions).
+  </Accordion>
+  <Accordion title="Judge" icon="gavel">
+    A model that scores an output against a rubric (0 to 10), or a pairwise judge that compares base and head in both orders. See [Judges](/docs/configuration/judges).
+  </Accordion>
+  <Accordion title="Gate" icon="road-barrier">
+    An expression over run metrics that decides the overall verdict, such as `fail_cases > 0`. See [Gates](/docs/configuration/gates).
+  </Accordion>
+  <Accordion title="Evidence bundle" icon="file-shield">
+    A deterministic `.ggb` zip with canonical records, a Merkle root, the resolved config, the suite, the diff, the HTML report and a signature. See [Evidence bundles](/docs/evidence).
+  </Accordion>
+</AccordionGroup>
+
+## Base and head
+
+Every comparison has a **base** (the version you trust) and a **head** (the candidate). Both are git refs. The special head `@worktree` means your uncommitted changes and is the default.
+
+Python targets run in a separate process inside a git worktree of each ref, so code changes are tested, not only prompt files. The `watch` list of a target names the files whose change should trigger diff targeted case generation.
+
+## Case statuses
+
+Each case gets one status after both versions run.
+
+| Status | Meaning |
+|---|---|
+| `PASS` | no meaningful difference |
+| `IMPROVED` | an assertion was fixed, the pairwise judge prefers head, or the score gained at least 1.0 |
+| `WARN` | the pairwise judge prefers base, or the score dropped at least 1.0 |
+| `FAIL` | a new assertion failure, a drop of at least 3.0, or a drop of at least 1.5 with the pairwise judge preferring base |
+| `BROKEN` | an assertion fails in both versions |
+| `UNSTABLE` | the verdict varies across trials or the pairwise judge disagrees with itself |
+
+Without a base (a single version run), a judge score under 3.0 is `FAIL` and under 5.0 is `WARN`.
+
+## Run verdict
+
+Case counts and metric intervals are fed to the gates. The first `fail_if` rule that holds makes the run `FAIL`, otherwise the first `warn_if` rule makes it `WARN`, otherwise it is `PASS`. The report shows which rule fired.
+
+## Project state
+
+GitGrounded keeps its state in `.gitgrounded/` next to `gitgrounded.yml` (configurable with `project.state_dir`).
+
+```
+.gitgrounded/
+  runs/<run id>/result.json
+  runs/<run id>/report.html
+  runs/<run id>/evidence.ggb
+  suites/<suite>/current.jsonl
+  suites/<suite>/versions/v1 ... vN
+  history/<label>/
+  cache/
+```
+
+Commit `.gitgrounded/suites/` so reviewers see exactly which questions were asked. Keep `runs/` and `cache/` out of git.

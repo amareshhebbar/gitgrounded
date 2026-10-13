@@ -1,0 +1,59 @@
+---
+title: "Troubleshooting and FAQ"
+description: "Common errors, what they mean and how to fix them."
+icon: "life-ring"
+---
+
+## Errors
+
+<AccordionGroup>
+  <Accordion title="no suites defined in gitgrounded.yml">
+    Run `gitgrounded init`, or add a `suites:` section with at least one suite whose `target` names a declared target.
+  </Accordion>
+  <Accordion title="shallow checkout detected / unknown revision">
+    The base ref is not in your clone. In GitHub Actions set `fetch-depth: 0` on `actions/checkout`. Locally run `git fetch origin main`.
+  </Accordion>
+  <Accordion title="cannot enforce the budget: no price known for MODEL">
+    The model is missing from the price table. Add it under `prices:` in `gitgrounded.yml`, set `GITGROUNDED_PRICES='{"my_model": [0.5, 1.5]}'`, or set `GITGROUNDED_ALLOW_UNKNOWN_COST=1` to run without a budget check.
+  </Accordion>
+  <Accordion title="budget exceeded">
+    The run spent more than `--budget-usd` or `execution.budget_usd`. Raise the budget, use `--quick`, `--max-cases` or `--minimal`, or rerun: cached responses cost nothing.
+  </Accordion>
+  <Accordion title="host is not in GITGROUNDED_HTTP_ALLOW">
+    A network target tried to reach a host outside the allowlist. Add the host to `GITGROUNDED_HTTP_ALLOW` or unset it.
+  </Accordion>
+  <Accordion title="unknown assertion type">
+    Check the spelling against [Assertions](/docs/configuration/assertions). Plugin types need their package installed in the same environment.
+  </Accordion>
+  <Accordion title="VERIFIED_INTEGRITY_SIGNATURE_PRESENT instead of VERIFIED">
+    The bundle has a CI signature but you did not say whose. Pass `--identity` with the workflow URL and ref.
+  </Accordion>
+  <Accordion title="NOT CERTIFIED">
+    The certificate lists its reasons. The usual ones are fewer than `evidence.certify.min_cases` questions, judge trap accuracy below the threshold, a hand edited question set, or an offline run.
+  </Accordion>
+</AccordionGroup>
+
+## Questions
+
+<AccordionGroup>
+  <Accordion title="Do I need API keys to try it?">
+    No. `GITGROUNDED_OFFLINE=1` runs everything on a deterministic simulation. Results are illustrative and never certified.
+  </Accordion>
+  <Accordion title="Which judge should I use?">
+    A strong model from a different provider than the one under test, at temperature 0. Measure it with `gitgrounded calibrate` before relying on judge based gates.
+  </Accordion>
+  <Accordion title="How many cases do I need?">
+    Certificates require at least 10. For pull request gating, run the mutation minimized suite (`--minimal`) and use `--trials 2` or more on prompts that sample with temperature.
+  </Accordion>
+  <Accordion title="Why is a case UNSTABLE?">
+    Its verdict changed across trials, or the pairwise judge disagreed with itself when the order was swapped. Lower the target temperature or raise `--trials`.
+  </Accordion>
+  <Accordion title="Can a developer fake a certificate?">
+    A self signed bundle proves only that the result was not edited after signing. CI bundles bind the result to a workflow identity in a public transparency log. Independent certificates move generation, execution, judging and signing to a service the developer does not control. See [Evidence bundles](/docs/evidence#what-it-does-not-prove).
+  </Accordion>
+  <Accordion title="Is my data sent anywhere?">
+    Only to the model providers you configure. Authorization headers are redacted in stored records, `evidence.redact` hides more fields, and the browser verifier works fully client side.
+  </Accordion>
+</AccordionGroup>
+
+Still stuck? [Open an issue](https://github.com/amareshhebbar/gitgrounded/issues) with the output of `gitgrounded doctor --format json` and the command you ran.

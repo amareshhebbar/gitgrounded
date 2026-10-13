@@ -1,0 +1,71 @@
+---
+title: "Quickstart"
+description: "Run a full regression comparison, an evidence bundle and an automatic benchmark in five minutes, without API keys."
+icon: "rocket"
+---
+
+The repository ships a small triage app with prepared git branches. One branch tweaks wording harmlessly, another drops a citation rule. GitGrounded should pass the first and fail the second.
+
+<Steps>
+  <Step title="Install">
+```bash
+pip install "gitgrounded[sign]"
+```
+  </Step>
+  <Step title="Create the demo repository">
+```bash
+git clone https://github.com/amareshhebbar/gitgrounded
+python gitgrounded/examples/triage/make_demo_repo.py /tmp/triage-demo
+cd /tmp/triage-demo
+export GITGROUNDED_OFFLINE=1
+```
+    `GITGROUNDED_OFFLINE=1` routes every model call to a deterministic simulation, so no keys are needed.
+  </Step>
+  <Step title="Compare a harmless change">
+```bash
+gitgrounded run --base baseline --head test/safe-wording-tweak
+```
+    Expect `PASS`. Every case ran on both refs and nothing regressed.
+  </Step>
+  <Step title="Compare a real regression and bundle it">
+```bash
+gitgrounded run --base baseline --head test/drop-citation-rule --bundle --open
+```
+    Expect `FAIL`. The HTML report opens and lists the cases that broke, with the rule that fired.
+  </Step>
+  <Step title="Verify the evidence">
+```bash
+gitgrounded verify .gitgrounded/runs/*/evidence.ggb
+```
+    Locally signed bundles report `VERIFIED_SELF_SIGNED`. Edit any byte inside and the status becomes `TAMPERED`.
+  </Step>
+  <Step title="Let it write the benchmark">
+```bash
+gitgrounded discover --suite auto
+gitgrounded synth --suite auto
+gitgrounded mutate --suite auto
+gitgrounded suite coverage --suite auto --open
+```
+    Behaviors are extracted from the prompt, a suite is synthesized to cover them, and mutation testing measures how many deliberate faults the suite catches.
+  </Step>
+</Steps>
+
+## Use it on your own app
+
+```bash
+cd your-app
+gitgrounded init
+gitgrounded doctor --ping
+gitgrounded run --base main
+```
+
+`gitgrounded init` detects your provider from the environment (or pass `--provider`), writes `gitgrounded.yml`, `gitgrounded.cases.jsonl` and `prompts/system.txt`, and offers to initialize git. Point the `app` target at your real app, then compare your uncommitted work against `main`.
+
+<CardGroup cols={2}>
+  <Card title="Configure targets" icon="bullseye" href="/docs/configuration/targets">
+    Python functions, HTTP APIs, prompts, MCP, A2A and ADK.
+  </Card>
+  <Card title="Configure providers" icon="key" href="/docs/configuration/providers">
+    Keys, models and which provider generates, validates and judges.
+  </Card>
+</CardGroup>

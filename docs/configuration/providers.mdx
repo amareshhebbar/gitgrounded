@@ -1,0 +1,119 @@
+---
+title: "Providers and roles"
+description: "Which models generate questions, validate them, judge answers and run your prompts, and how to configure keys."
+icon: "key"
+---
+
+GitGrounded uses models in four roles. Each role can use a different provider, which keeps the generator, validator and judge independent of the model under test.
+
+| Role | Does | Config | Environment |
+|---|---|---|---|
+| generator | extracts behaviors, writes questions and expectations, writes diff targeted cases | `providers.generator` | `GITGROUNDED_GENERATOR` |
+| validator | drops invalid generated cases | `providers.validator` | `GITGROUNDED_VALIDATOR` |
+| judge | scores answers with rubrics and pairwise comparison | `providers.judge` | `GITGROUNDED_JUDGE` |
+| panel | extra judges whose agreement is measured | `providers.panel` | `GITGROUNDED_PANEL` |
+
+Targets of type `openai_chat` and the MCP `agent` use their own `model:` block. `gitgrounded compare` takes models from `--model` or `GITGROUNDED_TARGET_MODELS`.
+
+## Supported providers
+
+| Name | Aliases | Default model | Key variables |
+|---|---|---|---|
+| `anthropic` | `claude` | `claude-sonnet-4-6` | `GITGROUNDED_CLAUDE_API_KEY`, `GITGROUNDED_ANTHROPIC_API_KEY`, `ANTHROPIC_API_KEY` |
+| `openai` | | `gpt-4.1-mini` | `GITGROUNDED_OPENAI_API_KEY`, `OPENAI_API_KEY` |
+| `groq` | | `openai/gpt-oss-120b` | `GITGROUNDED_GROQ_API_KEY`, `GROQ_API_KEY` |
+| `deepseek` | | `deepseek-flash` | `GITGROUNDED_DEEPSEEK_API_KEY`, `DEEPSEEK_API_KEY` |
+| `ollama` | | `qwen2.5:7b` | none; `GITGROUNDED_OLLAMA_BASE_URL` (default `http://localhost:11434`) |
+| `custom` | `openai_compat` | `GITGROUNDED_CUSTOM_MODEL` | `GITGROUNDED_CUSTOM_API_KEY`, `GITGROUNDED_CUSTOM_BASE_URL` |
+| `mock` | | `mock` | none; deterministic offline simulation |
+
+`custom` works with any OpenAI compatible host such as vLLM, LM Studio, Together, Fireworks or OpenRouter.
+
+## Configure with a .env file
+
+The fastest route is the bundled template.
+
+```bash
+cp .env.example .env
+gitgrounded doctor --ping
+```
+
+```bash .env
+GITGROUNDED_OPENAI_API_KEY=sk-...
+GITGROUNDED_CLAUDE_API_KEY=sk-ant-...
+GITGROUNDED_GROQ_API_KEY=gsk_...
+
+GITGROUNDED_GENERATOR=deepseek
+GITGROUNDED_VALIDATOR=groq
+GITGROUNDED_JUDGE=claude
+GITGROUNDED_JUDGE_TEMPERATURE=0
+GITGROUNDED_PANEL=
+GITGROUNDED_TARGET_MODELS=openai,claude
+
+GITGROUNDED_BUDGET_USD=2
+GITGROUNDED_CONCURRENCY=8
+```
+
+Role variables take `provider` or `provider:model`, for example `GITGROUNDED_JUDGE=openai:gpt-4.1`. For every provider you can also set `GITGROUNDED_<PROVIDER>_MODEL`, `_BASE_URL`, `_TEMPERATURE` and `_RPM`.
+
+## Configure in gitgrounded.yml
+
+```yaml gitgrounded.yml
+providers:
+  judge:
+    provider: anthropic
+    model: claude-sonnet-4-6
+    temperature: 0
+  generator:
+    provider: openai
+    model: gpt-4.1
+    temperature: 0.7
+  validator:
+    provider: groq
+    model: openai/gpt-oss-120b
+  panel:
+    - {provider: openai, model: gpt-4.1}
+    - {provider: deepseek, model: deepseek-flash}
+  embeddings:
+    provider: hash
+```
+
+| Key | Default | Meaning |
+|---|---|---|
+| `provider` | `mock` | provider name |
+| `model` | provider default | model id |
+| `base_url` | provider default | override the API endpoint |
+| `api_key_env` | provider default | name of the variable holding the key |
+| `temperature` | `0.0` | sampling temperature |
+| `max_tokens` | `2048` | output cap |
+| `seed` | none | sampling seed where supported |
+| `max_concurrency` | `8` | parallel calls to this provider |
+| `timeout_s` | `120` | per request timeout |
+| `max_retries` | `4` | retries with backoff on rate limits and transient errors |
+| `requests_per_minute` | none | client side rate limit |
+
+The built in defaults use Claude Sonnet for both the judge and the generator; environment variables override them and `gitgrounded.yml` overrides both.
+
+## Embeddings
+
+| Provider | Needs | Notes |
+|---|---|---|
+| `hash` | nothing | default, deterministic, fast |
+| `local` | the `coverage` extra | `sentence-transformers/all-MiniLM-L6-v2` by default |
+| `openai_compat` | `base_url`, key | any embeddings endpoint |
+
+Embeddings are used to merge near duplicate behaviors and to pick diverse cases.
+
+## Check the setup
+
+```bash
+gitgrounded doctor
+gitgrounded doctor --ping
+gitgrounded doctor --format json
+```
+
+`doctor` shows each role, provider, model and whether a key was found; `--ping` sends one tiny request to each. It also warns when the price table is older than 60 days.
+
+<Note>
+A judge from a different provider than the model under test reduces self preference bias. For certificates, prefer a strong judge and keep `temperature: 0`.
+</Note>

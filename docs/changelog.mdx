@@ -1,0 +1,43 @@
+---
+title: "Changelog"
+description: "Notable changes in each release. The full history is in CHANGELOG.md."
+icon: "clock-rotate-left"
+rss: true
+---
+
+<Update label="0.2.1" description="Hardening">
+  **Security**
+
+  * GitHub Action inputs are no longer interpolated into shell scripts, inputs are validated, third party actions are pinned to commit SHAs, fork pull requests run without secrets, and the sticky comment lookup is paginated.
+  * Every workflow uses least privilege permissions and does not persist checkout credentials.
+  * The certifier refuses private, loopback, link local and carrier grade NAT addresses at connect time, never follows redirects, and rate limits jobs per token.
+  * The attestation predicate type moved to a URI under the project's GitHub Pages site.
+
+  **Added**
+
+  * `gitgrounded init` detects the provider from your environment (or `--provider`) and offers to initialize git (`--yes`, `--no-git`).
+  * `gitgrounded verify --require-signature` exits 3 for intact but unsigned bundles.
+  * Offline runs print a simulation banner, and `verify` flags bundles produced offline.
+  * Unknown model prices show cost as unknown; budgets refuse to run without a price unless `GITGROUNDED_ALLOW_UNKNOWN_COST=1`; `GITGROUNDED_PRICES` overrides prices; `doctor` warns when the price table is older than 60 days.
+  * The offline mock target obeys word limits in the prompt and the mock judge scores helpfulness separately.
+</Update>
+
+<Update label="0.2.0" description="The v2 rebuild">
+  * Real LangGraph, Strands, A2A (1.0 and 0.3) and ADK examples with tests; the A2A target negotiates the protocol with `protocol: auto`.
+  * `certificate.pdf` with a QR code in certificate bundles.
+  * Independent certification service and the `certify-remote` client.
+  * Async executor mode and rate limiting for targets and providers.
+  * Refreshed price table.
+  * Legacy hackathon flags removed.
+</Update>
+
+<Update label="0.1" description="First package release">
+  * Installable package with a `gitgrounded` command, project root discovery and a `.gitgrounded/` state folder.
+  * Typed `gitgrounded.yml` v1 with environment interpolation and a JSON schema.
+  * Python, HTTP, OpenAI compatible chat, MCP and agent trace targets; Anthropic, OpenAI, Groq, Ollama, OpenAI compatible and offline providers.
+  * Assertions, rubric and pairwise judges, judge panels, calibration, and statistics with bootstrap, permutation, Holm and Wilson intervals.
+  * Gates with a safe expression language; terminal, HTML, Markdown, JUnit and JSON reports.
+  * Coverage engine with behavior extraction, covering arrays, oracles, validation, diversity, log analysis, mutation testing, minimization, review UI and versioned suites.
+  * Evidence bundles with Merkle roots and Ed25519 or Sigstore signatures, `gitgrounded verify` and a browser verifier.
+  * MCP schema diff, GitGrounded as an MCP server, and the GitHub Action.
+</Update>

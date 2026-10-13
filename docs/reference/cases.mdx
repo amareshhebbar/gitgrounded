@@ -1,0 +1,47 @@
+---
+title: "Case format"
+description: "The JSONL schema for test cases, written by hand or generated."
+icon: "file-lines"
+---
+
+A suite's cases live in a JSONL file (one JSON object per line) or a JSON list. Generated suites use the same format in `.gitgrounded/suites/<name>/current.jsonl`.
+
+```json gitgrounded.cases.jsonl
+{"id": "refund_window", "input": "Can I return a jacket I bought five weeks ago?", "expectations": [{"kind": "must", "text": "states the 30 day return window"}, {"kind": "must_not", "text": "promises a refund"}], "tags": ["refunds"]}
+{"id": "multi_turn", "input": [{"role": "user", "content": "I want to cancel"}, {"role": "assistant", "content": "Which plan are you on?"}, {"role": "user", "content": "The annual one"}], "expectations": [{"kind": "must", "text": "explains the annual plan cancellation fee"}]}
+{"id": "json_shape", "input": "Server down in the Frankfurt region", "assertions": [{"type": "json_schema", "schema": "schemas/triage.schema.json"}], "reference": "{\"priority\": \"P1\"}"}
+```
+
+## Fields
+
+| Field | Type | Default | Meaning |
+|---|---|---|---|
+| `id` | string | required | stable identifier, used by `--case` and in reports |
+| `input` | string or list of `{role, content}` | required | a single message or a full conversation |
+| `expectations` | list | `[]` | what a good answer must or must not do, read by judges |
+| `assertions` | list | `[]` | deterministic checks for this case, see [Assertions](/docs/configuration/assertions) |
+| `reference` | string | none | a reference answer shown to judges |
+| `context` | object | `{}` | extra context; `fixtures` and `tool_call` are used by MCP targets |
+| `tags` | list | `[]` | free labels |
+| `behaviors` | list | `[]` | behavior ids this case tests (set by synthesis) |
+| `cell` | object | `{}` | the covering array cell, for example `{"style": "angry", "language": "hi"}` |
+| `origin` | string | `human` | `human`, `synth`, `log` or `diff` |
+| `reviewed` | bool | `false` | set by `gitgrounded suite review` |
+| `meta` | object | `{}` | anything else; not part of the case hash |
+
+## Expectations
+
+| Kind | Meaning |
+|---|---|
+| `must` | the answer must do this |
+| `must_not` | the answer must not do this |
+| `should` | preferred but not required |
+| `refuse` | the answer should refuse |
+| `tool_call` | the agent should call `tool`; adds a `tool_called` assertion automatically |
+| `format` | the answer must follow this format |
+
+Each expectation has `kind`, `text`, and optionally `behavior_id` and `tool`.
+
+## Hashes
+
+Each case has a content hash over every field except `reviewed` and `meta`. The dataset hash is a hash of the sorted case hashes. Both are recorded in run results and evidence bundles, so any edit to a question or expectation is visible.
