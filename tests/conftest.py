@@ -14,12 +14,15 @@ os.environ["GITGROUNDED_OFFLINE"] = "1"
 def _offline(monkeypatch, tmp_path):
     monkeypatch.setenv("GITGROUNDED_OFFLINE", "1")
     monkeypatch.setenv("GITGROUNDED_SIGNING_KEY", str(tmp_path / "keys" / "ed25519.pem"))
+    from gitgrounded import net
     from gitgrounded.providers.base import reset_provider_cache
     from gitgrounded.providers.usage import USAGE
 
     reset_provider_cache()
     USAGE.reset()
+    net.set_strict(False)
     yield
+    net.set_strict(False)
 
 
 @pytest.fixture

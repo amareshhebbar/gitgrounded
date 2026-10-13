@@ -5,26 +5,29 @@ on:
     paths: ["docs/**", "mkdocs.yml", "README.md"]
 permissions:
   contents: read
-  pages: write
-  id-token: write
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: "3.12"
       - run: pip install mkdocs-material
       - run: cp README.md docs/index.md && mkdir -p site && mkdocs build --strict
       - run: cp -r verifier site/verify
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9
         with:
           path: site
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
     steps:
-      - uses: actions/deploy-pages@v4
+      - uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346

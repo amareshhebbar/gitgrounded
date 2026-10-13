@@ -1,6 +1,6 @@
 # Build status
 
-Tests: 103 passing offline, coverage 85 percent (CI gate 85) (`GITGROUNDED_OFFLINE=1 pytest -q`). Nothing has been run against real models yet.
+Test and coverage numbers are produced by CI, not written by hand. See the Tests workflow.
 
 ## Built
 

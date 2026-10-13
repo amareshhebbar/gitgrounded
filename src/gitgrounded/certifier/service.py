@@ -1,9 +1,8 @@
+import hashlib
 import hmac
-import ipaddress
 import json
 import queue
 import re
-import socket
 import threading
 import time
 import traceback
@@ -13,7 +12,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from gitgrounded import __version__
+from gitgrounded import __version__, net
 from gitgrounded.errors import ConfigError
 
 REMOTE_TYPES = {"http", "a2a", "adk", "mcp"}
@@ -26,18 +25,6 @@ def _target_urls(target: dict[str, Any]) -> list[str]:
     if t == "adk":
         return [target.get("base_url") or ""]
     return [target.get("url") or ""]
-
-
-def _private(host: str) -> bool:
-    try:
-        infos = socket.getaddrinfo(host, None)
-    except OSError:
-        return True
-    for info in infos:
-        ip = ipaddress.ip_address(info[4][0])
-        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast:
-            return True
-    return False
 
 
 def validate_target(target: Any, allow_private: bool = False) -> dict[str, Any]:
@@ -56,7 +43,7 @@ def validate_target(target: Any, allow_private: bool = False) -> dict[str, Any]:
         u = urlparse(url)
         if u.scheme not in ("http", "https") or not u.hostname:
             raise ConfigError(f"invalid target url: {url!r}")
-        if not allow_private and (u.scheme != "https" or _private(u.hostname)):
+        if not allow_private and (u.scheme != "https" or net.host_is_private(u.hostname)):
             raise ConfigError("target url must be https and resolve to a public address")
     return target
 
@@ -71,6 +58,7 @@ class CertifierService:
         allow_private: bool = False,
         max_cases: int = 200,
         public_url: str | None = None,
+        max_jobs_per_hour: int = 20,
     ):
         from gitgrounded.evidence.sign import LocalSigner
 
@@ -86,6 +74,9 @@ class CertifierService:
         self.allow_private = allow_private
         self.max_cases = max_cases
         self.public_url = public_url
+        self.max_jobs_per_hour = max_jobs_per_hour
+        self.submissions: dict[str, list[float]] = {}
+        net.set_strict(not allow_private)
         self.signer = LocalSigner(key_path or self.home / "certifier_ed25519.pem", scope="independent", issuer=name)
         self.pub = self.signer.public_key()
         self.queue: queue.Queue[str | None] = queue.Queue()
@@ -98,6 +89,26 @@ class CertifierService:
             return False
         given = header[7:].strip()
         return any(hmac.compare_digest(given, t) for t in self.tokens)
+
+    def token_id(self, header: str | None) -> str | None:
+        if not header or not header.startswith("Bearer "):
+            return None
+        given = header[7:].strip()
+        for t in sorted(self.tokens):
+            if hmac.compare_digest(given, t):
+                return hashlib.sha256(t.encode()).hexdigest()[:16]
+        return None
+
+    def allow_submission(self, token_id: str, now: float | None = None) -> bool:
+        now = time.time() if now is None else now
+        with self.lock:
+            window = [x for x in self.submissions.get(token_id, []) if now - x < 3600]
+            if len(window) >= self.max_jobs_per_hour:
+                self.submissions[token_id] = window
+                return False
+            window.append(now)
+            self.submissions[token_id] = window
+            return True
 
     def _job_path(self, job_id: str) -> Path:
         return self.jobs_dir / job_id / "job.json"
@@ -270,11 +281,17 @@ def make_handler(svc: CertifierService):
         def do_POST(self):
             if urlparse(self.path).path.rstrip("/") != "/jobs":
                 return self._send(404, {"error": "not found"})
-            if not svc.authorized(self.headers.get("Authorization")):
+            tid = svc.token_id(self.headers.get("Authorization"))
+            if tid is None:
                 return self._send(401, {"error": "unauthorized"})
-            length = int(self.headers.get("Content-Length") or 0)
+            try:
+                length = int(self.headers.get("Content-Length") or 0)
+            except ValueError:
+                return self._send(400, {"error": "invalid Content-Length"})
             if length <= 0 or length > MAX_BODY:
                 return self._send(413, {"error": "body missing or too large"})
+            if not svc.allow_submission(tid):
+                return self._send(429, {"error": "too many jobs for this token, try again later"})
             try:
                 body = json.loads(self.rfile.read(length))
                 job = svc.submit(body if isinstance(body, dict) else {})
