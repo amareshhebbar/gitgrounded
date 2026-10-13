@@ -1,4 +1,6 @@
-# Benchmark any framework, agent or API
+---
+title: "Benchmark any framework, agent or API"
+---
 
 `gitgrounded benchmark` runs every target on the same locked, AI generated question set and produces a leaderboard and, with `--certify`, a signed certificate.
 
