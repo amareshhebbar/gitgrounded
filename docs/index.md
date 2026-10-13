@@ -1,4 +1,6 @@
-# GitGrounded
+---
+title: "GitGrounded"
+---
 
 [![Tests](https://github.com/amareshhebbar/gitgrounded/actions/workflows/tests.yml/badge.svg)](https://github.com/amareshhebbar/gitgrounded/actions/workflows/tests.yml)
 [![PyPI](https://img.shields.io/pypi/v/gitgrounded.svg)](https://pypi.org/project/gitgrounded/)

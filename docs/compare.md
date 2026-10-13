@@ -1,4 +1,6 @@
-# Compare prompts and models, with a certificate
+---
+title: "Compare prompts and models, with a certificate"
+---
 
 ## Three commands
 

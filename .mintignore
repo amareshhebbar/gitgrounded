@@ -1,0 +1,14 @@
+docs/ROADMAP.md
+README.md
+CHANGELOG.md
+COMMIT_PLAN.md
+BUILD_STATUS.md
+CONTRIBUTING.md
+SECURITY.md
+CODE_OF_CONDUCT.md
+examples
+bench
+verifier
+action
+src
+tests

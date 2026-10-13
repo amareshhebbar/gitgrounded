@@ -1,4 +1,6 @@
-# Evidence bundles
+---
+title: "Evidence bundles"
+---
 
 A `.ggb` file is a deterministic zip that lets anyone check that a GitGrounded result was not edited after it was produced, and, when signed in CI, which workflow at which commit produced it.
 
@@ -50,7 +52,7 @@ signature/local.json or signature/manifest.sigstore.json
 
 `sign: auto` picks sigstore in GitHub Actions when available, otherwise local.
 
-The GitHub Action also creates an artifact attestation with predicate type `https://amareshhebbar.github.io/gitgrounded/attestation/eval-run/v1` whose predicate is the manifest.
+The GitHub Action also creates an artifact attestation with predicate type `https://gitgrounded.dev/attestation/eval-run/v1` whose predicate is the manifest.
 
 ## Verify
 

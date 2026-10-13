@@ -1,4 +1,6 @@
-# Stability
+---
+title: "Stability"
+---
 
 From 1.0 these formats follow semantic versioning. Breaking changes need a new major version.
 

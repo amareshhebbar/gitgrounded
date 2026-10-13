@@ -1,4 +1,6 @@
-# Automatic benchmark synthesis
+---
+title: "Automatic benchmark synthesis"
+---
 
 The problem: a real system prompt covers many topics, rules, formats and refusal boundaries. Writing a test suite by hand that covers all of them, under realistic and adversarial conditions, takes days, and nobody can say which rules were never tested.
 
