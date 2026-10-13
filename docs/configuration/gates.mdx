@@ -1,0 +1,107 @@
+---
+title: "Gates"
+description: "Expressions over counts, intervals, pairwise results, cost and latency that decide PASS, WARN or FAIL."
+icon: "road-barrier"
+---
+
+```yaml gitgrounded.yml
+gates:
+  fail_if:
+    - "new_assertion_failures > 0"
+    - "fail_cases > 0"
+  warn_if:
+    - "warn_cases > 0"
+    - "delta.score.ci_upper < 0"
+```
+
+Every rule is evaluated. If any `fail_if` rule holds the run is `FAIL`; otherwise if any `warn_if` rule holds it is `WARN`; otherwise `PASS`. The report and the JSON result include a trace of every rule and whether it fired.
+
+The defaults are `fail_if: [new_assertion_failures > 0, fail_cases > 0]` and `warn_if: [warn_cases > 0, delta.score.mean < -0.5]`.
+
+<Note>
+Gates apply to comparisons with a base. A single version run (no base, such as the first `check` of an endpoint) uses `fail_cases > 0` and `warn_cases > 0`.
+</Note>
+
+## Expression language
+
+A safe subset of Python expressions: numbers, strings, `true` and `false`, dotted names, `+ - * /`, comparisons (`> >= < <= == !=`, chained), `and`, `or`, `not`. Anything else, such as function calls or indexing, stops the run with a config error. A missing value never makes a rule fire.
+
+## Available values
+
+### Counts
+
+| Name | Meaning |
+|---|---|
+| `total_cases` | cases in the run |
+| `pass_cases`, `warn_cases`, `fail_cases` | cases with that status |
+| `improved_cases`, `broken_cases`, `unstable_cases` | cases with that status |
+| `new_assertion_failures` | cases failing an assertion on head that passed on base |
+| `fixed_assertion_failures` | cases failing on base that pass on head |
+| `head_assertion_failures`, `base_assertion_failures` | cases failing an assertion on each side |
+| `regressions`, `improvements` | aliases of `fail_cases` and `improved_cases` |
+| `errors` | target errors on head |
+
+### Metrics
+
+`head.<metric>`, `base.<metric>` and `delta.<metric>` hold intervals, where `<metric>` is `score`, any rubric dimension (for example `groundedness`), or `assertion_pass_rate`.
+
+| Field | On | Meaning |
+|---|---|---|
+| `mean` | head, base, delta | mean score (0 to 10) or mean change |
+| `ci_lower`, `ci_upper` | head, base, delta | bootstrap 95% interval |
+| `n` | head, base, delta | cases with a value |
+| `p_value` | delta | paired sign flip permutation test |
+| `p_adjusted` | delta | Holm corrected across metrics |
+| `rate`, `ci_lower`, `ci_upper` | `head.assertion_pass_rate`, `base.assertion_pass_rate` | Wilson interval of the pass rate |
+
+### Pairwise
+
+| Name | Meaning |
+|---|---|
+| `pairwise.head_win_rate`, `pairwise.base_win_rate`, `pairwise.tie_rate` | shares of comparisons |
+| `pairwise.head_wins`, `pairwise.base_wins`, `pairwise.ties`, `pairwise.n` | counts |
+| `pairwise.position_consistency` | how often both orders agreed |
+
+### Cost and latency
+
+| Name | Meaning |
+|---|---|
+| `cost.head.usd`, `cost.base.usd` | spend per side |
+| `cost.head.input_tokens`, `cost.head.output_tokens` | tokens per side |
+| `cost.run_usd` | total spend of the run including judges |
+| `latency.head.p50_ms`, `latency.head.p95_ms` | uncached latency percentiles |
+| `latency.base.p50_ms`, `latency.base.p95_ms` | the same for base |
+
+## Recipes
+
+<AccordionGroup>
+  <Accordion title="Fail only on significant score drops">
+```yaml
+gates:
+  fail_if: ["new_assertion_failures > 0", "delta.score.ci_upper < 0 and delta.score.p_adjusted < 0.05"]
+  warn_if: ["delta.score.mean < -0.3"]
+```
+  </Accordion>
+  <Accordion title="Block cost and latency regressions">
+```yaml
+gates:
+  fail_if:
+    - "fail_cases > 0"
+    - "cost.head.usd > cost.base.usd * 1.5"
+  warn_if:
+    - "latency.head.p95_ms > latency.base.p95_ms * 1.2"
+```
+  </Accordion>
+  <Accordion title="Require the head to win head to head">
+```yaml
+gates:
+  warn_if: ["pairwise.base_win_rate > pairwise.head_win_rate"]
+```
+  </Accordion>
+  <Accordion title="Keep the pass rate above a floor">
+```yaml
+gates:
+  fail_if: ["head.assertion_pass_rate.ci_lower < 0.9"]
+```
+  </Accordion>
+</AccordionGroup>

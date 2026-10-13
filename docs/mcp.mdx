@@ -1,0 +1,134 @@
+---
+title: "MCP servers"
+description: "Test MCP tool selection, catch breaking tool schema changes, and give coding agents GitGrounded as an MCP server."
+icon: "plug"
+---
+
+GitGrounded works with MCP in three directions.
+
+<CardGroup cols={3}>
+  <Card title="Test an MCP server" icon="vial" href="#test-an-mcp-server">
+    Does an agent still pick the right tool with the right arguments after you change descriptions or schemas?
+  </Card>
+  <Card title="Diff tool schemas" icon="code-compare" href="#diff-tool-schemas">
+    Classify every change as breaking, risky or safe and get a semver suggestion.
+  </Card>
+  <Card title="Serve GitGrounded" icon="server" href="#gitgrounded-as-an-mcp-server">
+    Let Claude Code, Cursor or any MCP client run regression checks for you.
+  </Card>
+</CardGroup>
+
+```bash
+pip install "gitgrounded[mcp]"
+```
+
+## Test an MCP server
+
+```yaml gitgrounded.yml
+targets:
+  weather:
+    type: mcp
+    transport: stdio
+    command: ["python", "server.py"]
+    watch: [server.py, descriptions.json]
+    agent:
+      provider: anthropic
+      model: claude-sonnet-4-6
+
+suites:
+  tools:
+    target: weather
+    cases: cases.jsonl
+    judges:
+      - type: rubric
+        rubric: tool_use
+    generate:
+      enabled: false
+```
+
+For each case, the `agent` model receives the task and the server's `tools/list` and chooses one tool and its arguments. The chosen tool is then called on the server. The output records the tool, arguments, result and error flag, so `tool_called`, `tool_not_called` and `tool_call_order` assertions work.
+
+```json cases.jsonl
+{"id": "w1", "input": "What's the weather going to be in Bengaluru tomorrow?", "assertions": [{"type": "tool_called", "tool": "get_forecast"}]}
+{"id": "w2", "input": "Is the air safe to breathe in Delhi right now?", "assertions": [{"type": "tool_called", "tool": "get_air_quality"}]}
+```
+
+| Field | Meaning |
+|---|---|
+| `transport` | `stdio` (default) or `http` |
+| `command` | server command for stdio |
+| `url` | server URL for http |
+| `env` | extra environment for the server process |
+| `tools_file` | read tools from a JSON file instead of a live server; tools are selected but not called |
+| `agent` | provider config of the model that selects tools |
+| `timeout_s` | per call timeout (default 60) |
+
+### Sandbox tool results
+
+Put canned results in `case.context.fixtures` to avoid calling the real tool:
+
+```json
+{"id": "w3", "input": "Weather in Pune?", "context": {"fixtures": {"get_forecast": {"temp_c": 29, "sky": "clear"}}}}
+```
+
+Set `case.context.tool_call` to `{"name": ..., "arguments": {...}}` to skip selection and test the call alone.
+
+## Diff tool schemas
+
+```bash
+gitgrounded mcp diff --base main
+gitgrounded mcp diff --base v1.0 --head v1.1 --target weather --format json
+gitgrounded mcp diff --old-file tools/v1.json --new-file tools/v2.json --fail-on risky
+```
+
+Both refs of the first `mcp` target (or `--target`) are materialized and their `tools/list` compared. With `--old-file` and `--new-file`, two saved `tools/list` payloads are compared directly.
+
+| Change | Level |
+|---|---|
+| tool removed or renamed | breaking |
+| parameter removed, new required parameter, parameter became required | breaking |
+| parameter type narrowed, enum value removed, enum restriction added | breaking |
+| new tool whose description overlaps an existing tool | risky |
+| tool or parameter description rewritten (similarity under `--threshold`, default 0.85) | risky |
+| new tool, new optional parameter, parameter became optional, enum value added, type widened | safe |
+| minor description edit | safe |
+
+Any breaking change suggests a **major** bump, any risky or additive change a **minor** bump, anything else a **patch**. `--fail-on breaking` (default) exits 1 on breaking changes; `--fail-on risky` also fails on risky ones.
+
+<Tip>
+Add the `gitgrounded-mcp-diff` hook from [pre commit hooks](/docs/ci/precommit) to block breaking tool changes before they are committed.
+</Tip>
+
+## GitGrounded as an MCP server
+
+```bash
+gitgrounded mcp serve
+gitgrounded mcp serve --project-dir /path/to/app
+```
+
+<CodeGroup>
+```json Claude Desktop or Cursor
+{
+  "mcpServers": {
+    "gitgrounded": {
+      "command": "gitgrounded",
+      "args": ["mcp", "serve", "--project-dir", "/path/to/app"]
+    }
+  }
+}
+```
+
+```bash Claude Code
+claude mcp add gitgrounded -- gitgrounded mcp serve --project-dir /path/to/app
+```
+</CodeGroup>
+
+| Tool | What it does |
+|---|---|
+| `run_suite` | compare two refs (default `HEAD` against `@worktree`, quick mode); returns verdict, counts and the worst cases |
+| `discover` | extract behaviors and dimensions from the suite sources |
+| `synth_suite` | generate or update the benchmark suite |
+| `diff_mcp_tools` | classify changes between two `tools/list` payloads |
+| `verify` | verify a `.ggb` bundle |
+
+A coding agent can then edit a prompt, call `run_suite`, read the failing cases and fix them before you review the change.

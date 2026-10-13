@@ -1,0 +1,70 @@
+---
+title: "Environment variables"
+description: "Every variable GitGrounded reads, grouped by purpose."
+icon: "list"
+---
+
+Variables can be set in the shell or in a `.env` file in the current directory or next to `gitgrounded.yml`. Values in `gitgrounded.yml` override role and execution variables.
+
+## Provider keys and models
+
+For each provider (`OPENAI`, `CLAUDE` or `ANTHROPIC`, `GROQ`, `DEEPSEEK`, `OLLAMA`, `CUSTOM`):
+
+| Variable | Meaning |
+|---|---|
+| `GITGROUNDED_<PROVIDER>_API_KEY` | API key; the standard `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GROQ_API_KEY` and `DEEPSEEK_API_KEY` also work |
+| `GITGROUNDED_<PROVIDER>_MODEL` | default model for that provider |
+| `GITGROUNDED_<PROVIDER>_BASE_URL` | API endpoint override |
+| `GITGROUNDED_<PROVIDER>_TEMPERATURE` | default temperature |
+| `GITGROUNDED_<PROVIDER>_RPM` | client side requests per minute |
+
+## Roles
+
+| Variable | Example | Meaning |
+|---|---|---|
+| `GITGROUNDED_GENERATOR` | `deepseek` | generator model |
+| `GITGROUNDED_VALIDATOR` | `groq` | validator model |
+| `GITGROUNDED_JUDGE` | `claude:claude-sonnet-4-6` | judge model |
+| `GITGROUNDED_<ROLE>_TEMPERATURE` | `0` | temperature for that role |
+| `GITGROUNDED_PANEL` | `openai,deepseek` | comma separated extra judges |
+| `GITGROUNDED_TARGET_MODELS` | `openai,claude` | default `--model` list for `compare` |
+
+## Execution
+
+| Variable | Meaning |
+|---|---|
+| `GITGROUNDED_OFFLINE` | `1` routes every model call to the deterministic offline provider |
+| `GITGROUNDED_MODE` | `test` is equivalent to `GITGROUNDED_OFFLINE=1` |
+| `GITGROUNDED_BUDGET_USD` | default spend cap per run |
+| `GITGROUNDED_CONCURRENCY` | default parallel calls |
+| `GITGROUNDED_TARGET_RPM` | rate limit for target calls |
+| `GITGROUNDED_EXEC_MODE` | `threads` or `async` |
+| `GITGROUNDED_NO_CACHE` | `1` bypasses the response cache |
+
+## Costs
+
+| Variable | Meaning |
+|---|---|
+| `GITGROUNDED_PRICES` | JSON object of model key to `[input, output]` USD per million tokens, merged over the built in table |
+| `GITGROUNDED_ALLOW_UNKNOWN_COST` | `1` lets budgets run when a model has no known price |
+
+## Security and evidence
+
+| Variable | Meaning |
+|---|---|
+| `GITGROUNDED_HTTP_ALLOW` | comma separated hosts network targets may call |
+| `GITGROUNDED_SIGNING_KEY` | path of the local Ed25519 signing key |
+| `GITGROUNDED_PRESIDIO` | `1` enables Presidio PII redaction of production logs during synthesis |
+
+## Certifier
+
+| Variable | Meaning |
+|---|---|
+| `GITGROUNDED_CERTIFIER_TOKENS` | comma separated tokens accepted by `certifier serve` |
+| `GITGROUNDED_CERTIFIER_TOKEN` | token sent by `certify-remote` |
+
+## Misc
+
+| Variable | Meaning |
+|---|---|
+| `GITGROUNDED_NO_UPDATE_CHECK` | `1` skips the PyPI version check in `--version` |

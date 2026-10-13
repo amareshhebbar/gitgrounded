@@ -1,0 +1,33 @@
+---
+title: "Pre commit hooks"
+description: "Block breaking MCP tool changes on commit and run a quick regression check before push."
+icon: "code-commit"
+---
+
+The repository ships two hooks for the `pre-commit` framework.
+
+```yaml .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/amareshhebbar/gitgrounded
+    rev: v0.2.1
+    hooks:
+      - id: gitgrounded-mcp-diff
+      - id: gitgrounded-quick
+```
+
+```bash
+pip install pre-commit
+pre-commit install
+pre-commit install --hook-type pre-push
+```
+
+| Hook | Stage | Runs |
+|---|---|---|
+| `gitgrounded-mcp-diff` | commit | `gitgrounded mcp diff --base HEAD --head @worktree --fail-on breaking` |
+| `gitgrounded-quick` | push | `gitgrounded run --base HEAD --head @worktree --quick --no-generate` |
+
+`gitgrounded-mcp-diff` needs an `mcp` target in `gitgrounded.yml` and is fast because it only compares tool schemas. `gitgrounded-quick` calls models, so it runs at push time on at most 6 cases related to the change.
+
+<Tip>
+Set `GITGROUNDED_OFFLINE=1` in your shell to make the quick hook free while you iterate, and leave the real check to CI.
+</Tip>

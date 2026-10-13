@@ -1,0 +1,96 @@
+---
+title: "Compare prompts and models"
+description: "Run any number of prompts on any number of models against one locked, AI generated question set, with an optional signed certificate."
+icon: "scale-balanced"
+---
+
+## Three commands
+
+```bash
+pip install "gitgrounded[sign]"
+cp .env.example .env
+gitgrounded compare --prompt v1.txt --prompt v2.txt --model openai --model claude --context policy.md --certify --open
+```
+
+Check the setup first with `gitgrounded doctor --ping`.
+
+<CodeGroup>
+```bash Two prompts, one model
+gitgrounded compare --prompt v1.txt --prompt v2.txt --model claude
+```
+
+```bash One prompt, three models
+gitgrounded compare --prompt system.txt --model openai:gpt-4.1-mini --model groq --model deepseek
+```
+
+```bash Grid with a different baseline
+gitgrounded compare --prompt v1.txt --prompt v2.txt --model openai,claude --baseline 2
+```
+
+```bash Local models
+gitgrounded compare --prompt v1.txt --prompt v2.txt --model ollama:qwen2.5:7b
+```
+</CodeGroup>
+
+`--model` takes a provider name (`openai`, `claude`, `groq`, `deepseek`, `ollama`, `custom`) or `provider:model`. Repeat it or separate with commas. Without it, `GITGROUNDED_TARGET_MODELS` is used.
+
+## What happens
+
+<Steps>
+  <Step title="One locked question set">
+    Behaviors are extracted from all prompts together, so neither prompt gets an advantage. Questions and expected answers come from the generator model, are checked by the validator model, and are sealed with a hash.
+  </Step>
+  <Step title="A grid of candidates">
+    Every prompt runs on every model. The first candidate is the baseline; `--baseline N` picks another.
+  </Step>
+  <Step title="Pairwise comparison">
+    Each candidate is compared with the baseline: assertions, rubric judge, pairwise judge in both orders, confidence intervals and p values.
+  </Step>
+  <Step title="Judge traps">
+    With `--certify`, the judge must first grade trap answers correctly (empty, off topic, ideal). If it fails, no certificate is issued.
+  </Step>
+  <Step title="Certificate bundle">
+    The bundle contains `certificate.json`, `certificate.html`, `certificate.pdf` (with the `pdf` extra), `traps.jsonl` and one signed evidence bundle per comparison. `gitgrounded verify` checks all of them.
+  </Step>
+</Steps>
+
+## Rules for a certificate
+
+| Rule | Why |
+|---|---|
+| Question set is AI generated and sealed | developers cannot pick easy questions; any edit breaks the seal |
+| At least `evidence.certify.min_cases` questions (default 10) | small sets prove nothing |
+| Judge trap accuracy at least `evidence.certify.trap_threshold` (default 90%) | proves the judge works on this run |
+| Signed (Sigstore in CI, Ed25519 locally) | proves the result was not edited |
+| Real models, not offline mode | simulated runs are never certified |
+
+Optional and shown on the certificate when present: human agreement from `gitgrounded calibrate` and mutation score from `gitgrounded mutate`.
+
+## Same question set over time
+
+The suite name is a hash of the prompts, context files, generator model and budget. Running the same comparison again reuses the same sealed questions, so scores stay comparable across weeks. Use `--regenerate` for a fresh set. A set that was modified by hand is refused.
+
+## Options
+
+| Flag | Default | Effect |
+|---|---|---|
+| `--prompt` | required | prompt file or inline text; repeat |
+| `--model` | `GITGROUNDED_TARGET_MODELS` | provider or `provider:model`; repeat or comma separate |
+| `--context` | none | policy or knowledge file answers must be grounded in; repeat |
+| `--baseline` | `0` | index of the baseline candidate in the grid |
+| `--budget-cases` | `40` | size of the generated question set |
+| `--regenerate` | off | ignore the sealed set and build a new one |
+| `--json-mode` | off | ask models for JSON output |
+| `--certify` | off | run traps and write a certificate |
+| `--out` | auto | certificate path (`.ggb`) |
+
+All [run flags](/docs/regression#useful-flags) such as `--trials`, `--budget-usd` and `--open` apply too.
+
+## Agents and tools
+
+The same flow works for agents declared in `gitgrounded.yml`. Use [`gitgrounded benchmark`](/docs/frameworks) to put several of them on one leaderboard, or certify a suite directly:
+
+```bash
+gitgrounded synth --suite agent
+gitgrounded run --suite agent --base main --certify
+```

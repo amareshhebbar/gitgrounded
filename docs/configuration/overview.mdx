@@ -1,0 +1,149 @@
+---
+title: "gitgrounded.yml"
+description: "The project file: every top level section, its defaults and how values are resolved."
+icon: "file-code"
+---
+
+`gitgrounded init` writes a starter `gitgrounded.yml`. Commands search upward from the current directory for it, or take `--config PATH`. Unknown keys are rejected, so typos fail loudly.
+
+```bash
+gitgrounded init --provider anthropic
+gitgrounded schema > gitgrounded.schema.json
+```
+
+Point your editor's YAML extension at the schema for completion and validation.
+
+## Full example
+
+```yaml gitgrounded.yml
+version: 1
+
+project:
+  name: support_bot
+  state_dir: .gitgrounded
+
+providers:
+  judge: {provider: anthropic, model: claude-sonnet-4-6, temperature: 0}
+  generator: {provider: deepseek, model: deepseek-flash, temperature: 0.7}
+  validator: {provider: groq, model: openai/gpt-oss-120b}
+  embeddings: {provider: hash}
+
+targets:
+  app:
+    type: openai_chat
+    system_prompt_file: prompts/system.txt
+    model: {provider: openai, model: gpt-4.1-mini}
+    watch: [prompts/system.txt]
+
+suites:
+  core:
+    target: app
+    cases: gitgrounded.cases.jsonl
+    trials: 1
+    assertions:
+      - {type: not_refusal}
+      - {type: max_length, value: 120, unit: words}
+    judges:
+      - {type: rubric, rubric: grounded_answer}
+      - {type: pairwise}
+    context:
+      policy: docs/policy.md
+    generate:
+      count: 6
+      domain: customer support for a broadband provider
+
+gates:
+  fail_if: ["new_assertion_failures > 0", "fail_cases > 0"]
+  warn_if: ["warn_cases > 0", "delta.score.ci_upper < 0"]
+
+evidence:
+  sign: auto
+  redact: []
+  certify:
+    min_cases: 10
+    trap_threshold: 0.9
+
+execution:
+  max_concurrency: 8
+  budget_usd: 2
+
+prices:
+  my_finetune: [0.5, 1.5]
+```
+
+## Sections
+
+| Section | Purpose | Page |
+|---|---|---|
+| `version` | always `1` | |
+| `project` | `name` and `state_dir` (default `.gitgrounded`) | |
+| `providers` | models used to judge, generate, validate and embed | [Providers](/docs/configuration/providers) |
+| `targets` | what is tested | [Targets](/docs/configuration/targets) |
+| `suites` | cases, assertions, judges and coverage per target | below |
+| `coverage` | default coverage settings for every suite | [Automatic benchmarks](/docs/coverage#configuration) |
+| `gates` | rules for PASS, WARN and FAIL | [Gates](/docs/configuration/gates) |
+| `evidence` | signing, attestation, redaction, certificates | below |
+| `execution` | concurrency, rate limits, budget, statistics | below |
+| `prices` | USD per million input and output tokens, by model prefix | below |
+
+## Suites
+
+| Key | Default | Meaning |
+|---|---|---|
+| `target` | required | target name |
+| `cases` | none | JSONL or JSON file of cases, relative to the config |
+| `assertions` | `[]` | assertions applied to every case, see [Assertions](/docs/configuration/assertions) |
+| `judges` | rubric and pairwise | see [Judges](/docs/configuration/judges) |
+| `trials` | `1` | repetitions per case and version |
+| `context` | `{}` | name to file map of documents passed to judges and the generator |
+| `generate.enabled` | `true` | write diff targeted cases when watched files change |
+| `generate.count` | `6` | how many |
+| `generate.domain` | empty | one sentence about the app to steer generation |
+| `coverage` | none | automatic benchmark settings for this suite |
+| `primary_metric` | `score` | metric used for ranking and summaries |
+
+## Evidence
+
+| Key | Default | Meaning |
+|---|---|---|
+| `sign` | `auto` | `auto`, `sigstore`, `local` or `none` |
+| `attest` | `none` | reserved; attestations are created by the [GitHub Action](/docs/ci/github) |
+| `include_transcripts` | `true` | store full transcripts in bundles |
+| `redact` | `[]` | JSONPaths removed from records before hashing |
+| `certify.trap_threshold` | `0.9` | minimum judge accuracy on trap answers |
+| `certify.traps` | `4` | number of trap answers |
+| `certify.min_cases` | `10` | minimum questions for a certificate |
+| `certify.require_sealed_suite` | `true` | refuse certificates on hand edited question sets |
+| `certify.pdf` | `true` | add `certificate.pdf` when the `pdf` extra is installed |
+| `certify.verify_url` | none | URL printed in the PDF QR code |
+
+## Execution
+
+| Key | Default | Meaning |
+|---|---|---|
+| `max_concurrency` | `8` | parallel calls |
+| `mode` | `threads` | `threads` or `async` |
+| `requests_per_minute` | none | rate limit for target calls |
+| `budget_usd` | none | abort the run when spend exceeds this |
+| `bootstrap_iterations` | `5000` | resamples for confidence intervals |
+| `seed` | `1234` | seed for statistics |
+
+## Prices
+
+Costs use a built in table of USD per million tokens `[input, output]`. A model matches the longest table key contained in its name, so `claude-sonnet` covers every Sonnet version. Add or override entries under `prices`, or with `GITGROUNDED_PRICES` as JSON. When a model has no price, cost shows as unknown and budgets refuse to run unless `GITGROUNDED_ALLOW_UNKNOWN_COST=1`.
+
+## Variable interpolation
+
+Any string can reference environment variables with `${NAME}` or `${NAME:-default}`. A `.env` file in the current directory or next to `gitgrounded.yml` is loaded automatically; variables already set in the shell win.
+
+```yaml
+targets:
+  api:
+    type: http
+    url: ${API_URL:-http://localhost:8000/chat}
+    headers: {Authorization: "Bearer ${API_TOKEN}"}
+```
+
+## Layering
+
+Settings resolve in this order, later winning: built in defaults, environment variables such as `GITGROUNDED_JUDGE` and `GITGROUNDED_CONCURRENCY`, then `gitgrounded.yml`, then command line flags.

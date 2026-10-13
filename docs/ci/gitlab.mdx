@@ -1,0 +1,35 @@
+---
+title: "GitLab CI"
+description: "Run GitGrounded on merge requests with JUnit results and an evidence bundle as artifacts."
+icon: "gitlab"
+---
+
+Include the job from `ci/gitlab-ci.yml` in the repository, or paste it into your `.gitlab-ci.yml`.
+
+```yaml .gitlab-ci.yml
+gitgrounded:
+  image: python:3.12-slim
+  stage: test
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  before_script:
+    - apt-get update && apt-get install -y --no-install-recommends git
+    - pip install "gitgrounded[sign]"
+    - git fetch origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
+  script:
+    - gitgrounded run --base "origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --head HEAD --bundle evidence.ggb --sign local --junit junit.xml --html report.html --markdown summary.md
+  artifacts:
+    when: always
+    paths: [evidence.ggb, report.html, summary.md]
+    reports:
+      junit: junit.xml
+```
+
+Add your provider key (for example `ANTHROPIC_API_KEY`) as a masked CI/CD variable.
+
+## Notes
+
+* GitLab merge request widgets show the JUnit report, so every case appears as a test with its status and reasons.
+* Sigstore keyless signing is only automatic on GitHub Actions. On GitLab use `--sign local` with a key stored in a protected variable and point `GITGROUNDED_SIGNING_KEY` at it, or use `--sign none` for integrity only.
+* Set `GIT_DEPTH: 0` in the job variables if your project uses shallow clones, so the target branch history is available.
+* Use `--fail-on warn` to block merges on warnings too.

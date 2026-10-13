@@ -1,0 +1,48 @@
+---
+title: "Validation with real models"
+description: "How GitGrounded's own verdicts are measured against real models, and how to reproduce the numbers."
+icon: "flask"
+---
+
+Offline mode is a simulation. It proves the plumbing works, not that verdicts are right with real models. This page defines what is measured with real models and how to reproduce it.
+
+## What is measured
+
+The triage example has prepared branches with known outcomes. Each is compared with the baseline many times.
+
+| Comparison | Expected | Pass criterion |
+|---|---|---|
+| a ref against itself | PASS | PASS in at least 95% of runs |
+| `test/safe-wording-tweak` | PASS | PASS in at least 90% of runs |
+| `test/drop-citation-rule` | FAIL | FAIL in at least 90% of runs |
+| `test/model-downgrade` | FAIL | FAIL in at least 80% of runs |
+| `test/drop-policy-field`, `test/remove-grounding` | FAIL | reported as additional detection cases |
+
+Spend per run is reported with no threshold. The script reports rates; the criteria above are the targets a published run should meet.
+
+## Reproduce
+
+```bash
+export ANTHROPIC_API_KEY=... GROQ_API_KEY=...
+python bench/validate.py --reps 10 --budget-usd 2
+```
+
+Results are written to `bench/results/validation.md` and `bench/results/validation.json`. Each rate has a Wilson 95% interval, so a small number of repetitions is visibly uncertain. `--allow-offline` only checks the plumbing.
+
+## Suite strength benchmark
+
+```bash
+python bench/run.py --example triage --mutants 30
+```
+
+Measures how many planted regressions an auto generated suite detects compared with the hand written suite of the same example. Results go to `bench/results/<example>.md`.
+
+## Status
+
+<Warning>
+No conclusive real model results are published yet. The latest committed run had provider errors on most comparisons. Until a clean run is published, treat verdict accuracy claims as unmeasured: run the script, read the intervals, and publish the table here with the model names and the date.
+</Warning>
+
+## Judge agreement
+
+Use [`gitgrounded calibrate`](/docs/configuration/judges#calibrate-against-humans) with a human labeled set to measure how often the judge agrees with people, and report the agreement before relying on judge based gates.

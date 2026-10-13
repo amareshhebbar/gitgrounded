@@ -1,0 +1,87 @@
+---
+title: "Regression test a change"
+description: "Compare two git refs of your app, or your uncommitted work, and get a verdict with statistics."
+icon: "code-compare"
+---
+
+`gitgrounded run` is the everyday command. It runs every case of a suite on the base ref and on the head ref, checks both, and decides whether the change regressed anything.
+
+```bash
+gitgrounded run --base main
+gitgrounded run --base v1.2 --head feature/x
+gitgrounded run --base main --quick
+gitgrounded run --base main --trials 3 --budget-usd 2 --bundle --open
+```
+
+<Tip>
+`--head` defaults to `@worktree`, your uncommitted changes. Edit a prompt, run `gitgrounded run --base main`, and read the verdict before you commit.
+</Tip>
+
+## What happens during a run
+
+<Steps>
+  <Step title="Resolve both versions">
+    Each ref is checked out into a git worktree under `.gitgrounded/worktrees/`. Python targets start a worker process inside each worktree.
+  </Step>
+  <Step title="Add diff targeted cases">
+    When a watched file changed, the generator writes up to `generate.count` extra cases aimed at the change. Disable with `--no-generate` or `generate.enabled: false`.
+  </Step>
+  <Step title="Run and score">
+    Every case runs on both versions for `trials` repetitions. Assertions run first, then rubric judges, then the pairwise judge in both orders.
+  </Step>
+  <Step title="Summarize">
+    Each metric gets a bootstrap 95% interval. The delta gets a paired permutation p value with Holm correction. Pass rates get Wilson intervals.
+  </Step>
+  <Step title="Decide">
+    Gates turn counts and intervals into `PASS`, `WARN` or `FAIL`, and the exit code follows `--fail-on`.
+  </Step>
+</Steps>
+
+## Useful flags
+
+| Flag | Effect |
+|---|---|
+| `--suite NAME` | pick a suite (default: the first one) |
+| `--quick` | at most 6 cases, prioritizing those related to the change |
+| `--minimal` | use the mutation minimized suite from `gitgrounded mutate` |
+| `--case a,b` | run only these case ids |
+| `--max-cases N` | cap the number of cases |
+| `--trials N` | repeat each case N times to expose unstable outputs |
+| `--budget-usd X` | abort once spend exceeds X dollars |
+| `--concurrency N` | parallel calls |
+| `--fail-on fail\|warn\|never` | which verdict makes the exit code nonzero |
+| `--bundle [PATH]` | write a signed evidence bundle |
+| `--sign auto\|sigstore\|local\|none` | signing mode for the bundle |
+| `--certify` | run judge traps and write a certificate |
+| `--html`, `--markdown`, `--junit`, `--json-out` | write reports to explicit paths |
+| `--format terminal\|json\|markdown` | stdout format |
+| `--open` | open the HTML report |
+
+## Rank several candidates
+
+```bash
+gitgrounded rank --base main prompt/a prompt/b prompt/c
+```
+
+Each candidate is compared with the same base. Candidates are ordered by verdict, then assertion failures, then pairwise win rate, then mean score, and candidates whose intervals overlap are marked as tied. The exit code is nonzero only when every candidate fails.
+
+## Reports
+
+```bash
+gitgrounded report
+gitgrounded report --format html --open
+gitgrounded report --format markdown --out summary.md
+gitgrounded bundle --sign local
+```
+
+`report` renders the latest run (or a `result.json` or run directory you pass). `bundle` packages a stored run as an evidence bundle after the fact.
+
+## Costs and caching
+
+Model responses are cached in `.gitgrounded/cache/`, keyed by request, so rerunning an unchanged base is free. Clear it with:
+
+```bash
+gitgrounded cache clear
+```
+
+Set `GITGROUNDED_NO_CACHE=1` to bypass the cache for one run. Costs are computed from the price table; see [Environment variables](/docs/reference/environment) for overriding prices.

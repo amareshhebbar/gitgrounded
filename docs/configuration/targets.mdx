@@ -1,0 +1,190 @@
+---
+title: "Targets"
+description: "Every way to connect GitGrounded to the thing under test, with every field."
+icon: "bullseye"
+---
+
+A target is declared under `targets:` with a `type`. Every target accepts `watch`, a list of files whose change marks the target as changed and triggers diff targeted cases.
+
+<Tabs>
+  <Tab title="python">
+```yaml
+targets:
+  app:
+    type: python
+    entry: app.bot:run
+    watch: [prompts/system.txt, config/model.yaml]
+    timeout_s: 300
+    env: {APP_MODE: eval}
+```
+  </Tab>
+  <Tab title="framework">
+```yaml
+targets:
+  graph:
+    type: framework
+    entry: my_app.graph:build_graph()
+    framework: auto
+    options: {messages_key: messages}
+```
+  </Tab>
+  <Tab title="openai_chat">
+```yaml
+targets:
+  prompt:
+    type: openai_chat
+    system_prompt_file: prompts/system.txt
+    model: {provider: openai, model: gpt-4.1-mini}
+    json_mode: false
+```
+  </Tab>
+  <Tab title="http">
+```yaml
+targets:
+  api:
+    type: http
+    url: https://api.example.com/chat
+    headers: {Authorization: "Bearer ${API_TOKEN}"}
+    body: {message: "{{input}}"}
+    output: $.reply.text
+```
+  </Tab>
+  <Tab title="mcp">
+```yaml
+targets:
+  tools:
+    type: mcp
+    transport: stdio
+    command: ["python", "server.py"]
+    agent: {provider: anthropic, model: claude-sonnet-4-6}
+```
+  </Tab>
+  <Tab title="a2a">
+```yaml
+targets:
+  agent:
+    type: a2a
+    url: http://localhost:9999/
+    protocol: auto
+```
+  </Tab>
+  <Tab title="adk">
+```yaml
+targets:
+  agent:
+    type: adk
+    base_url: http://localhost:8000
+    app_name: my_agent
+```
+  </Tab>
+</Tabs>
+
+## python
+
+Any function `run(case_input, ctx)` (or `run(case_input)`) returning a string, or a dict with `output` and optionally `tool_calls`, `context` and `usage`. `case_input` is a string or a list of chat messages. It runs in a separate worker process inside a git worktree of each ref, so code changes are tested, not only prompt files.
+
+```python app/bot.py
+from openai import OpenAI
+
+client = OpenAI()
+SYSTEM = open("prompts/system.txt").read()
+
+
+def run(case_input, ctx):
+    messages = [{"role": "system", "content": SYSTEM}]
+    if isinstance(case_input, str):
+        messages.append({"role": "user", "content": case_input})
+    else:
+        messages.extend(case_input)
+    resp = client.chat.completions.create(model="gpt-4.1-mini", messages=messages)
+    return {
+        "output": resp.choices[0].message.content,
+        "usage": {"input_tokens": resp.usage.prompt_tokens, "output_tokens": resp.usage.completion_tokens},
+    }
+```
+
+| Field | Default | Meaning |
+|---|---|---|
+| `entry` | required | `module:function` |
+| `watch` | `[]` | files that mark the target changed |
+| `timeout_s` | `300` | per case timeout |
+| `env` | `{}` | extra environment for the worker |
+
+`type: agent` is an alias of `type: python`, useful for readability when the function is an agent loop that returns `tool_calls`.
+
+## framework
+
+The same worker model, but `entry` points at a framework object or factory and GitGrounded calls it the right way. See [Benchmark frameworks and agents](/docs/frameworks) for the per framework table and options.
+
+| Field | Default | Meaning |
+|---|---|---|
+| `entry` | required | `module:object` or `module:factory()` |
+| `framework` | `auto` | `langgraph`, `langchain`, `strands`, `crewai`, `openai_agents`, `pydantic_ai`, `llamaindex`, `autogen`, `smolagents`, `haystack`, `dspy`, `generic` |
+| `options` | `{}` | framework specific options |
+
+## openai_chat
+
+A system prompt run on any configured provider. Despite the name it works with every provider, not only OpenAI.
+
+| Field | Default | Meaning |
+|---|---|---|
+| `system_prompt_file` | none | prompt file, read from each ref |
+| `system_prompt` | none | inline prompt |
+| `template_vars` | `{}` | placeholder name to file path; the file content replaces `{{name}}` in the prompt |
+| `model` | mock | provider config, see [Providers](/docs/configuration/providers) |
+| `model_file`, `model_key` | none | read the model (a string, or a dict of provider fields) at a JSONPath in a YAML file of the repo, so a model swap is a tested change |
+| `json_mode` | `false` | request JSON output |
+
+## http
+
+Any JSON API.
+
+| Field | Default | Meaning |
+|---|---|---|
+| `url` | required | endpoint |
+| `method` | `POST` | `POST`, `PUT` or `GET` |
+| `headers` | `{}` | request headers; values may use `${ENV}` |
+| `body` | `{"message": "{{input}}"}` | body template; `{{input}}` is replaced by the case input |
+| `output` | whole body | JSONPath of the answer |
+| `context_path` | none | JSONPath of retrieved context, passed to judges |
+| `tool_calls_path` | none | JSONPath of tool calls, for tool assertions |
+| `timeout_s` | `60` | request timeout |
+
+Authorization style headers are redacted in every stored record. Restrict reachable hosts with `GITGROUNDED_HTTP_ALLOW`.
+
+## mcp
+
+An MCP server over stdio or HTTP, tested by letting an agent model pick a tool. See [MCP servers](/docs/mcp#test-an-mcp-server).
+
+| Field | Default | Meaning |
+|---|---|---|
+| `transport` | `stdio` | `stdio` or `http` |
+| `command` | `[]` | server command for stdio |
+| `url` | none | server URL for http |
+| `env` | `{}` | extra environment |
+| `tools_file` | none | read tools from JSON instead of a live server |
+| `agent` | mock | provider config of the selecting model |
+| `timeout_s` | `60` | per call timeout |
+
+## a2a
+
+An agent that speaks the A2A protocol. GitGrounded sends JSON RPC `message/send` and keeps `contextId` across turns of a multi turn case.
+
+| Field | Default | Meaning |
+|---|---|---|
+| `url` | required | agent URL |
+| `protocol` | `auto` | `auto`, `1.0` or `0.3` |
+| `headers` | `{}` | request headers |
+| `timeout_s` | `120` | per turn timeout |
+
+## adk
+
+A Google ADK agent served by `adk api_server`. GitGrounded creates a session and calls `/run`, recording function calls as tool calls.
+
+| Field | Default | Meaning |
+|---|---|---|
+| `base_url` | `http://127.0.0.1:8000` | api server URL |
+| `app_name` | required | ADK app name |
+| `user_id` | `gitgrounded` | user id for sessions |
+| `headers` | `{}` | request headers |
+| `timeout_s` | `180` | per turn timeout |

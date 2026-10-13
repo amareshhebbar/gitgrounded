@@ -1,4 +1,7 @@
-# Attestation predicate: eval-run v1
+---
+title: "Attestation format"
+description: "The eval run v1 predicate that the GitHub Action attaches to every evidence bundle."
+---
 
 Predicate type URI: `https://amareshhebbar.github.io/gitgrounded/attestation/eval-run/v1`
 
@@ -28,4 +31,4 @@ gh attestation verify evidence.ggb --repo OWNER/REPO
 gitgrounded verify evidence.ggb --require-signature
 ```
 
-Offline runs are never attested by the Action.
+Offline runs and pull requests from forks are never attested by the Action.
