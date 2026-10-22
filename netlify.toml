@@ -10,10 +10,10 @@
 
 [[redirects]]
   from = "/*"
-  to = "https://SOMETHING.mintlify.site/:splat"
+  to = "https://gitgrounded.mintlify.site/:splat"
   status = 200
   force = true
-  headers = {Origin = "SOMETHING.mintlify.site"}
+  headers = {Origin = "gitgrounded.mintlify.site"}
 
 [[headers]]
   for = "/*"
