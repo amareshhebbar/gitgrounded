@@ -155,7 +155,9 @@
     "indexing": "navigable",
     "metatags": {
       "og:site_name": "GitGrounded",
-      "keywords": "llm evaluation, regression testing, prompt testing, model comparison, mcp, sigstore, mutation testing, benchmarks"
+      "keywords": "llm evaluation, regression testing, prompt testing, model comparison, mcp, sigstore, mutation testing, benchmarks",
+      "canonical": "https://gitgrounded.netlify.app",
+      "og:url": "https://gitgrounded.netlify.app"
     }
   },
   "redirects": [
