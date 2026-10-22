@@ -10,10 +10,10 @@
 
 [[redirects]]
   from = "/*"
-  to = "https://MINTLIFY_SUBDOMAIN.mintlify.site/:splat"
+  to = "https://SOMETHING.mintlify.site/:splat"
   status = 200
   force = true
-  headers = {Origin = "MINTLIFY_SUBDOMAIN.mintlify.site"}
+  headers = {Origin = "SOMETHING.mintlify.site"}
 
 [[headers]]
   for = "/*"
