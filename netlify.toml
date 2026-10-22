@@ -1,0 +1,21 @@
+[build]
+  publish = "deploy/netlify"
+  command = ""
+
+[[redirects]]
+  from = "/"
+  to = "/docs/introduction"
+  status = 302
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "https://MINTLIFY_SUBDOMAIN.mintlify.site/:splat"
+  status = 200
+  force = true
+  headers = {Origin = "MINTLIFY_SUBDOMAIN.mintlify.site"}
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
