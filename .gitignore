@@ -20,3 +20,6 @@ build/
 .claude/
 report.json
 *.ggb
+bench/proof/.env
+bench/proof/work/
+bench/proof/results/
