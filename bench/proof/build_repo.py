@@ -68,6 +68,20 @@ def main() -> None:
         shutil.rmtree(dest)
     shutil.copytree(args.example, dest, ignore=SKIP)
 
+    app = dest / "app" / "triage.py"
+    src = app.read_text(encoding="utf-8")
+    old_parse = "    try:\n        output = json.loads(raw)\n"
+    new_parse = (
+        "    text = raw.strip()\n"
+        "    if text.startswith(\"```\"):\n"
+        "        text = text.split(\"\\n\", 1)[1] if \"\\n\" in text else \"\"\n"
+        "        text = text.rsplit(\"```\", 1)[0].strip()\n"
+        "    try:\n        output = json.loads(text)\n"
+    )
+    if src.count(old_parse) != 1:
+        sys.exit("triage app parse block not found, cannot apply the fence fix")
+    app.write_text(src.replace(old_parse, new_parse), encoding="utf-8")
+
     model_cfg = {
         "provider": os.environ.get("APP_PROVIDER", "custom"),
         "model": os.environ["APP_MODEL"],
@@ -115,6 +129,7 @@ def main() -> None:
         "cases": len(kit.read_jsonl(cases)),
         "baseline_commit": git(["rev-parse", "baseline"], dest),
         "scenarios": len(plan),
+        "app_patch": "the bench copy of app/triage.py strips a markdown code fence before json.loads, because some OpenAI compatible proxies return fenced JSON even in json_object mode",
     })
     print(f"{dest}: {len(plan)} scenario branches, {len(kit.read_jsonl(cases))} cases")
 
